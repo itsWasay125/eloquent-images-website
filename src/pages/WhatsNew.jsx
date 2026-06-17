@@ -1,0 +1,355 @@
+import { useEffect, useRef, useState } from 'react';
+import { Fancybox, ToolbarColumn } from '@fancyapps/ui';
+import { Autoplay, Navigation } from 'swiper/modules';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import '@fancyapps/ui/dist/fancybox/fancybox.css';
+import 'swiper/css';
+import 'swiper/css/navigation';
+
+const API_BASE = 'https://eloquent.koderspedia.online';
+
+const SLIDE_AUTOPLAY_MS = 3500;
+const SLIDE_AUTOPLAY_STAGGER_MS = 350;
+const SLIDE_TRANSITION_MS = 850;
+
+const preloadedImages = new Set();
+
+function getImageName(image) {
+  return (
+    image.originalName ||
+    image.fileName ||
+    image.filename ||
+    image.title ||
+    'Original name unavailable'
+  );
+}
+
+async function fetchJson(url, signal) {
+  const response = await fetch(url, { signal });
+
+  if (!response.ok) {
+    throw new Error(`Request failed with status ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// The images API is paginated (10 per page), so fetch every page for a category.
+async function fetchAllCategoryImages(categoryId, signal) {
+  const build = (page) =>
+    `${API_BASE}/api/images?page=${page}&categoryId=${categoryId}`;
+
+  const first = await fetchJson(build(1), signal);
+  if (!first.success || !Array.isArray(first.data)) {
+    return [];
+  }
+
+  let all = first.data;
+  const totalPages = first.meta?.totalPages ?? 1;
+
+  if (totalPages > 1) {
+    const rest = await Promise.all(
+      Array.from({ length: totalPages - 1 }, (_, i) =>
+        fetchJson(build(i + 2), signal),
+      ),
+    );
+    rest.forEach((page) => {
+      if (page.success && Array.isArray(page.data)) {
+        all = all.concat(page.data);
+      }
+    });
+  }
+
+  return mapApiImages(all);
+}
+
+function mapApiImages(images = []) {
+  return images
+    .filter((image) => image.imageUrl)
+    .map((image) => ({
+      src: image.imageUrl,
+      caption: getImageName(image),
+      type: 'image',
+    }));
+}
+
+function preloadImage(src) {
+  if (!src || preloadedImages.has(src)) return;
+  preloadedImages.add(src);
+  const image = new Image();
+  image.decoding = 'async';
+  image.src = src;
+}
+
+function openFancybox(slides, startIndex, onIndexChange) {
+  Fancybox.show(slides, {
+    startIndex,
+    theme: 'dark',
+    Carousel: {
+      infinite: true,
+      Toolbar: {
+        absolute: true,
+        display: {
+          [ToolbarColumn.Left]: ['counter'],
+          [ToolbarColumn.middle]: [
+            'zoomIn',
+            'zoomOut',
+            'toggle1to1',
+            'rotateCCW',
+            'rotateCW',
+            'flipX',
+            'flipY',
+          ],
+          [ToolbarColumn.right]: ['autoplay', 'fullscreen', 'close'],
+        },
+      },
+    },
+    on: {
+      'Carousel.change': (fancybox) => {
+        const index = fancybox.getCarousel()?.getPageIndex() ?? startIndex;
+        onIndexChange(index);
+      },
+    },
+  });
+}
+
+function GallerySlider({ images, sectionIndex, title }) {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [failedImages, setFailedImages] = useState(() => new Set());
+  const swiperRef = useRef(null);
+  const hasImages = images.length > 0;
+  const hasLoop = images.length > 1;
+  const previousControlClass = `gallery-control-prev-${sectionIndex}`;
+  const nextControlClass = `gallery-control-next-${sectionIndex}`;
+
+  useEffect(() => {
+    setActiveIndex(0);
+    setFailedImages(new Set());
+    swiperRef.current?.slideToLoop?.(0, 0);
+  }, [images]);
+
+  useEffect(() => {
+    if (!hasImages) return;
+
+    const previousIndex = activeIndex === 0 ? images.length - 1 : activeIndex - 1;
+    const nextIndex = activeIndex === images.length - 1 ? 0 : activeIndex + 1;
+
+    preloadImage(images[activeIndex].src);
+    preloadImage(images[previousIndex].src);
+    preloadImage(images[nextIndex].src);
+  }, [activeIndex, hasImages, images]);
+
+  const jumpToImage = (index) => {
+    setActiveIndex(index);
+    swiperRef.current?.slideToLoop?.(index, 0);
+  };
+
+  return (
+    <div className="whats-new-gallery">
+      <div className="row">
+        <div className="col-12">
+          <h2>{title}</h2>
+        </div>
+      </div>
+
+      <div className="row">
+        <div className="col-12">
+          {hasImages ? (
+            <div className="gallery-frame">
+              {hasLoop && (
+                <button
+                  aria-label={`Previous ${title} image`}
+                  className={`gallery-control gallery-control-prev ${previousControlClass}`}
+                  type="button"
+                >
+                  &lsaquo;
+                </button>
+              )}
+
+              <Swiper
+                autoplay={
+                  hasLoop
+                    ? {
+                        delay:
+                          SLIDE_AUTOPLAY_MS +
+                          sectionIndex * SLIDE_AUTOPLAY_STAGGER_MS,
+                        disableOnInteraction: false,
+                        pauseOnMouseEnter: true,
+                      }
+                    : false
+                }
+                className="gallery-swiper"
+                lazyPreloadPrevNext={2}
+                loop={hasLoop}
+                modules={[Autoplay, Navigation]}
+                navigation={
+                  hasLoop
+                    ? {
+                        prevEl: `.${previousControlClass}`,
+                        nextEl: `.${nextControlClass}`,
+                      }
+                    : false
+                }
+                slidesPerView={1}
+                speed={SLIDE_TRANSITION_MS}
+                watchSlidesProgress
+                onSlideChange={(swiper) => setActiveIndex(swiper.realIndex)}
+                onSwiper={(swiper) => { swiperRef.current = swiper; }}
+              >
+                {images.map((image, index) => (
+                  <SwiperSlide key={image.src}>
+                    <button
+                      className="gallery-slide"
+                      disabled={failedImages.has(image.src)}
+                      type="button"
+                      onClick={() => openFancybox(images, index, jumpToImage)}
+                    >
+                      {failedImages.has(image.src) ? (
+                        <span className="gallery-image-error">
+                          Image is temporarily unavailable
+                        </span>
+                      ) : (
+                        <img
+                          src={image.src}
+                          alt={image.caption}
+                          loading={index === activeIndex ? 'eager' : 'lazy'}
+                          decoding="async"
+                          fetchPriority={index === activeIndex ? 'high' : 'auto'}
+                          onError={() => {
+                            setFailedImages((current) => {
+                              const next = new Set(current);
+                              next.add(image.src);
+                              return next;
+                            });
+                          }}
+                        />
+                      )}
+                    </button>
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+
+              {hasLoop && (
+                <button
+                  aria-label={`Next ${title} image`}
+                  className={`gallery-control gallery-control-next ${nextControlClass}`}
+                  type="button"
+                >
+                  &rsaquo;
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="gallery-empty">No images available</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WhatsNew() {
+  const [gallerySections, setGallerySections] = useState([]);
+  const [imagesByCategory, setImagesByCategory] = useState({});
+  const [status, setStatus] = useState('loading');
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadGalleries() {
+      try {
+        setStatus('loading');
+        const categoryData = await fetchJson(
+          `${API_BASE}/api/Categories`,
+          controller.signal
+        );
+
+        if (!categoryData.success || !Array.isArray(categoryData.categories)) {
+          throw new Error('The categories response is invalid');
+        }
+
+        const sections = [...categoryData.categories].reverse().map((category) => ({
+          title: category.name,
+          slug: category.slug,
+          id: category.id,
+        }));
+        setGallerySections(sections);
+        // Show the gallery structure immediately; each section's images then
+        // fill in independently instead of blocking the whole page.
+        setStatus('ready');
+
+        sections.forEach(async (section) => {
+          try {
+            const images = await fetchAllCategoryImages(
+              section.id,
+              controller.signal
+            );
+            setImagesByCategory((prev) => ({ ...prev, [section.id]: images }));
+          } catch (error) {
+            if (error.name !== 'AbortError') {
+              setImagesByCategory((prev) => ({ ...prev, [section.id]: [] }));
+            }
+          }
+        });
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('Unable to load What\'s New galleries:', error);
+          setStatus('error');
+        }
+      }
+    }
+
+    loadGalleries();
+
+    return () => controller.abort();
+  }, []);
+
+  return (
+    <section className="whats-new-page">
+      <div className="container">
+        {status === 'loading' && (
+          <div className="whats-new-status">Loading galleries...</div>
+        )}
+        {status === 'error' && (
+          <div className="whats-new-status whats-new-status-error">
+            Galleries could not be loaded. Please try again later.
+          </div>
+        )}
+        {status === 'ready' && gallerySections.length === 0 && (
+          <div className="whats-new-status">No galleries available right now.</div>
+        )}
+        {gallerySections.map((section, index) => {
+          const sectionImages = imagesByCategory[section.id];
+
+          if (sectionImages === undefined) {
+            return (
+              <div className="whats-new-gallery" key={section.id}>
+                <div className="row">
+                  <div className="col-12">
+                    <h2>{section.title}</h2>
+                  </div>
+                </div>
+                <div className="row">
+                  <div className="col-12">
+                    <div className="gallery-frame gallery-frame-loading" />
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          return (
+            <GallerySlider
+              images={sectionImages}
+              key={section.id}
+              sectionIndex={index}
+              title={section.title}
+            />
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+export default WhatsNew;
