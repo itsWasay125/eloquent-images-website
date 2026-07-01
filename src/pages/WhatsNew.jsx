@@ -2,76 +2,22 @@ import { useEffect, useRef, useState } from 'react';
 import { Fancybox, ToolbarColumn } from '@fancyapps/ui';
 import { Autoplay, Navigation } from 'swiper/modules';
 import { Swiper, SwiperSlide } from 'swiper/react';
+import {
+  fetchCategoryImagesPage,
+  fetchGalleryCategories,
+} from '../api/gallery.js';
 import '@fancyapps/ui/dist/fancybox/fancybox.css';
 import 'swiper/css';
 import 'swiper/css/navigation';
 
-const API_BASE = 'https://eloquent.koderspedia.online';
-
+// Show only the newest images per category on What's New (the API returns
+// newest-first, so the first pages already hold the latest uploads).
+const LATEST_PER_CATEGORY = 12;
 const SLIDE_AUTOPLAY_MS = 3500;
 const SLIDE_AUTOPLAY_STAGGER_MS = 350;
 const SLIDE_TRANSITION_MS = 850;
 
 const preloadedImages = new Set();
-
-function getImageName(image) {
-  return (
-    image.originalName ||
-    image.fileName ||
-    image.filename ||
-    image.title ||
-    'Original name unavailable'
-  );
-}
-
-async function fetchJson(url, signal) {
-  const response = await fetch(url, { signal });
-
-  if (!response.ok) {
-    throw new Error(`Request failed with status ${response.status}`);
-  }
-
-  return response.json();
-}
-
-// The images API is paginated (10 per page), so fetch every page for a category.
-async function fetchAllCategoryImages(categoryId, signal) {
-  const build = (page) =>
-    `${API_BASE}/api/images?page=${page}&categoryId=${categoryId}`;
-
-  const first = await fetchJson(build(1), signal);
-  if (!first.success || !Array.isArray(first.data)) {
-    return [];
-  }
-
-  let all = first.data;
-  const totalPages = first.meta?.totalPages ?? 1;
-
-  if (totalPages > 1) {
-    const rest = await Promise.all(
-      Array.from({ length: totalPages - 1 }, (_, i) =>
-        fetchJson(build(i + 2), signal),
-      ),
-    );
-    rest.forEach((page) => {
-      if (page.success && Array.isArray(page.data)) {
-        all = all.concat(page.data);
-      }
-    });
-  }
-
-  return mapApiImages(all);
-}
-
-function mapApiImages(images = []) {
-  return images
-    .filter((image) => image.imageUrl)
-    .map((image) => ({
-      src: image.imageUrl,
-      caption: getImageName(image),
-      type: 'image',
-    }));
-}
 
 function preloadImage(src) {
   if (!src || preloadedImages.has(src)) return;
@@ -79,6 +25,36 @@ function preloadImage(src) {
   const image = new Image();
   image.decoding = 'async';
   image.src = src;
+}
+
+function useOnceInView(rootMargin = '500px') {
+  const ref = useRef(null);
+  const [isInView, setIsInView] = useState(false);
+
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return undefined;
+
+    if (!('IntersectionObserver' in window)) {
+      setIsInView(true);
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin },
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [rootMargin]);
+
+  return [ref, isInView];
 }
 
 function openFancybox(slides, startIndex, onIndexChange) {
@@ -117,6 +93,7 @@ function GallerySlider({ images, sectionIndex, title }) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [failedImages, setFailedImages] = useState(() => new Set());
   const swiperRef = useRef(null);
+  const [sliderRef, isInView] = useOnceInView();
   const hasImages = images.length > 0;
   const hasLoop = images.length > 1;
   const previousControlClass = `gallery-control-prev-${sectionIndex}`;
@@ -129,7 +106,7 @@ function GallerySlider({ images, sectionIndex, title }) {
   }, [images]);
 
   useEffect(() => {
-    if (!hasImages) return;
+    if (!hasImages || !isInView) return;
 
     const previousIndex = activeIndex === 0 ? images.length - 1 : activeIndex - 1;
     const nextIndex = activeIndex === images.length - 1 ? 0 : activeIndex + 1;
@@ -137,7 +114,7 @@ function GallerySlider({ images, sectionIndex, title }) {
     preloadImage(images[activeIndex].src);
     preloadImage(images[previousIndex].src);
     preloadImage(images[nextIndex].src);
-  }, [activeIndex, hasImages, images]);
+  }, [activeIndex, hasImages, images, isInView]);
 
   const jumpToImage = (index) => {
     setActiveIndex(index);
@@ -145,7 +122,7 @@ function GallerySlider({ images, sectionIndex, title }) {
   };
 
   return (
-    <div className="whats-new-gallery">
+    <div className="whats-new-gallery" ref={sliderRef}>
       <div className="row">
         <div className="col-12">
           <h2>{title}</h2>
@@ -212,9 +189,13 @@ function GallerySlider({ images, sectionIndex, title }) {
                         <img
                           src={image.src}
                           alt={image.caption}
-                          loading={index === activeIndex ? 'eager' : 'lazy'}
+                          loading={
+                            isInView && index === activeIndex ? 'eager' : 'lazy'
+                          }
                           decoding="async"
-                          fetchPriority={index === activeIndex ? 'high' : 'auto'}
+                          fetchPriority={
+                            isInView && index === activeIndex ? 'high' : 'auto'
+                          }
                           onError={() => {
                             setFailedImages((current) => {
                               const next = new Set(current);
@@ -254,45 +235,64 @@ function WhatsNew() {
   const [status, setStatus] = useState('loading');
 
   useEffect(() => {
+    let cancelled = false;
     const controller = new AbortController();
+    const { signal } = controller;
 
     async function loadGalleries() {
       try {
         setStatus('loading');
-        const categoryData = await fetchJson(
-          `${API_BASE}/api/Categories`,
-          controller.signal
-        );
+        const categories = await fetchGalleryCategories();
+        if (cancelled) return;
 
-        if (!categoryData.success || !Array.isArray(categoryData.categories)) {
-          throw new Error('The categories response is invalid');
-        }
-
-        const sections = [...categoryData.categories].reverse().map((category) => ({
+        const sections = [...categories].reverse().map((category) => ({
           title: category.name,
           slug: category.slug,
           id: category.id,
         }));
         setGallerySections(sections);
-        // Show the gallery structure immediately; each section's images then
-        // fill in independently instead of blocking the whole page.
+        // Show the structure immediately; each section's latest images then
+        // fill in independently.
         setStatus('ready');
 
-        sections.forEach(async (section) => {
-          try {
-            const images = await fetchAllCategoryImages(
-              section.id,
-              controller.signal
-            );
-            setImagesByCategory((prev) => ({ ...prev, [section.id]: images }));
-          } catch (error) {
-            if (error.name !== 'AbortError') {
-              setImagesByCategory((prev) => ({ ...prev, [section.id]: [] }));
+        await Promise.all(
+          sections.map(async (section) => {
+            try {
+              // Show the newest page immediately (10 images)...
+              const first = await fetchCategoryImagesPage(section.id, 1, signal);
+              if (cancelled) return;
+              setImagesByCategory((prev) => ({
+                ...prev,
+                [section.id]: first.images.slice(0, LATEST_PER_CATEGORY),
+              }));
+
+              // ...then top up to 12 from the next page if needed.
+              if (
+                first.images.length < LATEST_PER_CATEGORY &&
+                (first.meta?.totalPages ?? 1) > 1
+              ) {
+                const second = await fetchCategoryImagesPage(
+                  section.id,
+                  2,
+                  signal,
+                ).catch(() => null);
+                if (cancelled || !second) return;
+                setImagesByCategory((prev) => ({
+                  ...prev,
+                  [section.id]: first.images
+                    .concat(second.images)
+                    .slice(0, LATEST_PER_CATEGORY),
+                }));
+              }
+            } catch (error) {
+              if (!cancelled && error.name !== 'AbortError') {
+                setImagesByCategory((prev) => ({ ...prev, [section.id]: [] }));
+              }
             }
-          }
-        });
+          }),
+        );
       } catch (error) {
-        if (error.name !== 'AbortError') {
+        if (!cancelled && error.name !== 'AbortError') {
           console.error('Unable to load What\'s New galleries:', error);
           setStatus('error');
         }
@@ -301,7 +301,10 @@ function WhatsNew() {
 
     loadGalleries();
 
-    return () => controller.abort();
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
   }, []);
 
   return (

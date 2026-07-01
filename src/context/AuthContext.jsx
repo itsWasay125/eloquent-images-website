@@ -1,5 +1,10 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
-import { loginRequest, registerRequest } from '../api/auth.js';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import {
+  getUserByTokenRequest,
+  loginRequest,
+  registerRequest,
+  updateProfileRequest,
+} from '../api/auth.js';
 import { clearAuth, getStoredUser, getToken, storeAuth } from '../api/authToken.js';
 
 const AuthContext = createContext(null);
@@ -39,6 +44,39 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
+  // Update name/email via the API and keep the stored user in sync.
+  const updateProfile = useCallback(async ({ name, email }) => {
+    const data = await updateProfileRequest({ name, email });
+    const nextUser = data.user || data.data || { ...user, name, email };
+    storeAuth(undefined, nextUser);
+    setUser(nextUser);
+    return nextUser;
+  }, [user]);
+
+  // On load (and after a refresh), confirm the token is still valid and pull the
+  // latest user via get-user-by-token. If the token is dead, log out cleanly.
+  useEffect(() => {
+    if (!token) return undefined;
+
+    let cancelled = false;
+    getUserByTokenRequest()
+      .then((data) => {
+        if (cancelled) return;
+        const freshUser = data.user || data.data;
+        if (freshUser) {
+          storeAuth(undefined, freshUser);
+          setUser(freshUser);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) logout();
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, logout]);
+
   const value = useMemo(
     () => ({
       token,
@@ -47,8 +85,9 @@ export function AuthProvider({ children }) {
       login,
       register,
       logout,
+      updateProfile,
     }),
-    [token, user, login, register, logout],
+    [token, user, login, register, logout, updateProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

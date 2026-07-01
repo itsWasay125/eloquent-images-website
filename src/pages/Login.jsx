@@ -6,7 +6,10 @@ function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const redirectTo = location.state?.from || '/products';
+  const from = location.state?.from;
+  // Return the user to wherever they came from; only fall back to products if
+  // we have no origin (or it was the login page itself).
+  const redirectTo = from && from !== '/login' ? from : '/products';
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -69,6 +72,10 @@ function Login() {
               {submitting ? 'Signing in...' : 'Login'}
             </button>
           </form>
+
+          <p className="auth-switch">
+            <Link to="/forgot-password">Forgot password?</Link>
+          </p>
 
           <p className="auth-switch">
             Don&apos;t have an account? <Link to="/register">Register</Link>

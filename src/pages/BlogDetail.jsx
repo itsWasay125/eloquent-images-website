@@ -1,6 +1,6 @@
 import { createElement, Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { fetchBlogs } from '../api/blogs.js';
+import { fetchBlogBySlug } from '../api/blogs.js';
 import RemoteImage from '../components/RemoteImage.jsx';
 
 const CONTENT_TAGS = new Set([
@@ -173,9 +173,8 @@ function BlogDetail() {
     setPost(null);
     setStatus('loading');
 
-    fetchBlogs(controller.signal)
-      .then((blogs) => {
-        const requestedPost = blogs.find((item) => item.slug === slug);
+    fetchBlogBySlug(slug, controller.signal)
+      .then((requestedPost) => {
         setPost(requestedPost ?? null);
         setStatus(requestedPost ? 'ready' : 'not-found');
       })

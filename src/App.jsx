@@ -1,29 +1,37 @@
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import AOS from 'aos';
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import Footer from './components/Footer.jsx';
 import Header from './components/Header.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
-import { CartProvider } from './context/CartContext.jsx';
-import AboutUs from './pages/AboutUs.jsx';
-import Birds from './pages/Birds.jsx';
-import BlogDetail from './pages/BlogDetail.jsx';
-import Blogs from './pages/Blogs.jsx';
-import Cart from './pages/Cart.jsx';
-import ContactUs from './pages/ContactUs.jsx';
-import Login from './pages/Login.jsx';
-import Register from './pages/Register.jsx';
-import Flora from './pages/Flora.jsx';
-import Gallery from './pages/Gallery.jsx';
-import Home from './pages/Home.jsx';
-import InsectsSpiders from './pages/InsectsSpiders.jsx';
-import Landscapes from './pages/Landscapes.jsx';
-import Mammals from './pages/Mammals.jsx';
-import Miscellaneous from './pages/Miscellaneous.jsx';
-import Products from './pages/Products.jsx';
-import ReptilesAmphibians from './pages/ReptilesAmphibians.jsx';
-import WhatsNew from './pages/WhatsNew.jsx';
+import { SHOP_ENABLED } from './config.js';
 import 'aos/dist/aos.css';
+
+const AboutUs = lazy(() => import('./pages/AboutUs.jsx'));
+const Birds = lazy(() => import('./pages/Birds.jsx'));
+const BlogDetail = lazy(() => import('./pages/BlogDetail.jsx'));
+const Blogs = lazy(() => import('./pages/Blogs.jsx'));
+const Orders = lazy(() => import('./pages/Orders.jsx'));
+const Checkout = lazy(() => import('./pages/Checkout.jsx'));
+const CheckoutSuccess = lazy(() => import('./pages/CheckoutSuccess.jsx'));
+const ContactUs = lazy(() => import('./pages/ContactUs.jsx'));
+const Login = lazy(() => import('./pages/Login.jsx'));
+const Register = lazy(() => import('./pages/Register.jsx'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword.jsx'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword.jsx'));
+const Profile = lazy(() => import('./pages/Profile.jsx'));
+const Flora = lazy(() => import('./pages/Flora.jsx'));
+const Gallery = lazy(() => import('./pages/Gallery.jsx'));
+const Home = lazy(() => import('./pages/Home.jsx'));
+const InsectsSpiders = lazy(() => import('./pages/InsectsSpiders.jsx'));
+const Landscapes = lazy(() => import('./pages/Landscapes.jsx'));
+const Mammals = lazy(() => import('./pages/Mammals.jsx'));
+const Miscellaneous = lazy(() => import('./pages/Miscellaneous.jsx'));
+const Products = lazy(() => import('./pages/Products.jsx'));
+const ProductDetail = lazy(() => import('./pages/ProductDetail.jsx'));
+const ReptilesAmphibians = lazy(() => import('./pages/ReptilesAmphibians.jsx'));
+const SearchResults = lazy(() => import('./pages/SearchResults.jsx'));
+const WhatsNew = lazy(() => import('./pages/WhatsNew.jsx'));
 
 export const pages = [
   { name: 'Home', path: '/', component: Home },
@@ -31,7 +39,7 @@ export const pages = [
   { name: 'About Us', path: '/about-us', component: AboutUs },
   { name: 'Gallery', path: '/gallery', component: Gallery },
   { name: 'Blogs', path: '/blogs', component: Blogs },
-  { name: 'Products', path: '/products', component: Products, hidden: true },
+  { name: 'Products', path: '/products', component: Products, hidden: !SHOP_ENABLED },
   { name: 'Birds', path: '/birds', navPath: '/gallery/#birds', component: Birds },
   {
     name: 'Mammals',
@@ -66,6 +74,14 @@ export const pages = [
   },
 ];
 
+function PageLoader() {
+  return (
+    <section className="route-loader">
+      <div className="blog-status">Loading...</div>
+    </section>
+  );
+}
+
 function AppContent() {
   const location = useLocation();
 
@@ -79,10 +95,12 @@ function AppContent() {
   }, []);
 
   useEffect(() => {
-    window.setTimeout(() => {
-      AOS.refreshHard();
-    }, 100);
-  }, [location.pathname, location.hash]);
+    const timeoutId = window.setTimeout(() => {
+      AOS.refresh();
+    }, 150);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (location.hash || location.state?.gallerySlug) {
@@ -98,16 +116,25 @@ function AppContent() {
   return (
     <>
       <Header pages={pages} />
-      <Routes>
-        {pages.map(({ path, component: Page }) => (
-          <Route key={path} path={path} element={<Page />} />
-        ))}
-        <Route path="/blogs/:slug" element={<BlogDetail />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/contact-us" element={<ContactUs />} />
-      </Routes>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          {pages.map(({ path, component: Page }) => (
+            <Route key={path} path={path} element={<Page />} />
+          ))}
+          <Route path="/blogs/:slug" element={<BlogDetail />} />
+          <Route path="/search" element={<SearchResults />} />
+          <Route path="/products/:id" element={<ProductDetail />} />
+          <Route path="/orders" element={<Orders />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/checkout/success" element={<CheckoutSuccess />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/contact-us" element={<ContactUs />} />
+        </Routes>
+      </Suspense>
       <Footer />
     </>
   );
@@ -117,9 +144,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <CartProvider>
-          <AppContent />
-        </CartProvider>
+        <AppContent />
       </AuthProvider>
     </BrowserRouter>
   );
