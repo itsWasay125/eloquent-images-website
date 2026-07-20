@@ -278,7 +278,7 @@ function Home() {
   return (
     <>
       {/* What's New — first thing on the page */}
-      <section className="homeGallery">
+      <section className="homeGallery whatsNew">
         <WhatsNewSection />
       </section>
 

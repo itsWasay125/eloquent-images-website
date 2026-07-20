@@ -26,6 +26,7 @@ function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const currentPath = `${location.pathname}${location.search}${location.hash}`;
 
   const userInitial = (user?.name?.trim()?.[0] || 'U').toUpperCase();
@@ -49,6 +50,22 @@ function Header() {
       document.removeEventListener('keydown', handleKey);
     };
   }, [isProfileOpen]);
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+    setIsProfileOpen(false);
+  }, [location.pathname, location.search, location.hash]);
+
+  useEffect(() => {
+    if (!isMobileMenuOpen) return undefined;
+
+    const handleKey = (event) => {
+      if (event.key === 'Escape') setIsMobileMenuOpen(false);
+    };
+
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [isMobileMenuOpen]);
 
   const handleSearchSubmit = (event) => {
     event.preventDefault();
@@ -83,7 +100,94 @@ function Header() {
     navigate(pathname, {
       state: { gallerySlug: hash },
     });
+    setIsMobileMenuOpen(false);
   };
+
+  const renderMenuLink = (entry, className) => {
+    const to = entry.navPath ?? entry.path;
+    const isHashLink = to.includes('#');
+    const isActive = isHashLink
+      ? `${location.pathname}${location.hash}` === to
+      : location.pathname === entry.path;
+
+    return (
+      <NavLink
+        className={`${className}${isActive ? ' menu-link-active' : ''}`}
+        onClick={(event) => handleMenuClick(event, to)}
+        to={to}
+      >
+        {entry.label}
+      </NavLink>
+    );
+  };
+
+  const renderAccountMenu = () =>
+    isAuthenticated ? (
+      <div className="profile-menu" ref={profileRef}>
+        <button
+          type="button"
+          className="profile-trigger"
+          aria-label="Account menu"
+          aria-expanded={isProfileOpen}
+          onClick={() => setIsProfileOpen((open) => !open)}
+        >
+          <span className="profile-avatar">{userInitial}</span>
+        </button>
+
+        {isProfileOpen && (
+          <div className="profile-dropdown">
+            <div className="profile-dropdownHead">
+              <span className="profile-avatar profile-avatar-lg">{userInitial}</span>
+              <span className="profile-name">{user?.name || 'Account'}</span>
+            </div>
+
+            <Link
+              className="profile-item"
+              to="/profile"
+              onClick={() => setIsProfileOpen(false)}
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-5 0-9 2.5-9 5.5V22h18v-2.5c0-3-4-5.5-9-5.5Z" />
+              </svg>
+              <span>Edit profile</span>
+            </Link>
+
+            <Link
+              className="profile-item"
+              to="/orders"
+              onClick={() => setIsProfileOpen(false)}
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm0 16H5V5h14v14ZM7 7h10v2H7V7Zm0 4h10v2H7v-2Zm0 4h7v2H7v-2Z" />
+              </svg>
+              <span>My Orders</span>
+            </Link>
+
+            <button
+              type="button"
+              className="profile-item profile-logout"
+              onClick={() => {
+                setIsProfileOpen(false);
+                logout();
+              }}
+            >
+              <svg aria-hidden="true" viewBox="0 0 24 24">
+                <path d="M16 17v-3H9v-4h7V7l5 5-5 5ZM14 2a2 2 0 0 1 2 2v2h-2V4H5v16h9v-2h2v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9Z" />
+              </svg>
+              <span>Logout</span>
+            </button>
+          </div>
+        )}
+      </div>
+    ) : (
+      <Link
+        className="auth-login-link"
+        to="/login"
+        state={{ from: currentPath }}
+      >
+        Login
+      </Link>
+    );
 
   return (
     <header className="site-header">
@@ -97,6 +201,8 @@ function Header() {
               <SocialLinks className="social-links d-flex" />
             </div>
             <div className="col-auto header-actions">
+              {SHOP_ENABLED && <div className="desktop-account">{renderAccountMenu()}</div>}
+
               <form
                 className={`search-form input-group ${
                   isSearchOpen ? 'search-form-open' : ''
@@ -128,77 +234,17 @@ function Header() {
                 </button>
               </form>
 
-              {SHOP_ENABLED &&
-                (isAuthenticated ? (
-                <div className="profile-menu" ref={profileRef}>
-                  <button
-                    type="button"
-                    className="profile-trigger"
-                    aria-label="Account menu"
-                    aria-expanded={isProfileOpen}
-                    onClick={() => setIsProfileOpen((open) => !open)}
-                  >
-                    <span className="profile-avatar">{userInitial}</span>
-                  </button>
-
-                  {isProfileOpen && (
-                    <div className="profile-dropdown">
-                      <div className="profile-dropdownHead">
-                        <span className="profile-avatar profile-avatar-lg">
-                          {userInitial}
-                        </span>
-                        <span className="profile-name">
-                          {user?.name || 'Account'}
-                        </span>
-                      </div>
-
-                      <Link
-                        className="profile-item"
-                        to="/profile"
-                        onClick={() => setIsProfileOpen(false)}
-                      >
-                        <svg aria-hidden="true" viewBox="0 0 24 24">
-                          <path d="M12 12a5 5 0 1 0 0-10 5 5 0 0 0 0 10Zm0 2c-5 0-9 2.5-9 5.5V22h18v-2.5c0-3-4-5.5-9-5.5Z" />
-                        </svg>
-                        <span>Edit profile</span>
-                      </Link>
-
-                      <Link
-                        className="profile-item"
-                        to="/orders"
-                        onClick={() => setIsProfileOpen(false)}
-                      >
-                        <svg aria-hidden="true" viewBox="0 0 24 24">
-                          <path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2Zm0 16H5V5h14v14ZM7 7h10v2H7V7Zm0 4h10v2H7v-2Zm0 4h7v2H7v-2Z" />
-                        </svg>
-                        <span>My Orders</span>
-                      </Link>
-
-                      <button
-                        type="button"
-                        className="profile-item profile-logout"
-                        onClick={() => {
-                          setIsProfileOpen(false);
-                          logout();
-                        }}
-                      >
-                        <svg aria-hidden="true" viewBox="0 0 24 24">
-                          <path d="M16 17v-3H9v-4h7V7l5 5-5 5ZM14 2a2 2 0 0 1 2 2v2h-2V4H5v16h9v-2h2v2a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9Z" />
-                        </svg>
-                        <span>Logout</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <Link
-                  className="auth-login-link"
-                  to="/login"
-                  state={{ from: currentPath }}
-                >
-                  Login
-                </Link>
-                ))}
+              <button
+                type="button"
+                className="mobile-menu-toggle"
+                aria-label="Open menu"
+                aria-expanded={isMobileMenuOpen}
+                onClick={() => setIsMobileMenuOpen((open) => !open)}
+              >
+                <span />
+                <span />
+                <span />
+              </button>
             </div>
           </div>
         </div>
@@ -210,25 +256,8 @@ function Header() {
             {MENU.map((item) => {
               if (item.shopOnly && !SHOP_ENABLED) return null;
 
-              const renderLink = (entry, className) => {
-                const to = entry.navPath ?? entry.path;
-                const isHashLink = to.includes('#');
-                const isActive = isHashLink
-                  ? `${location.pathname}${location.hash}` === to
-                  : location.pathname === entry.path;
-                return (
-                  <NavLink
-                    className={`${className}${isActive ? ' menu-link-active' : ''}`}
-                    onClick={(event) => handleMenuClick(event, to)}
-                    to={to}
-                  >
-                    {entry.label}
-                  </NavLink>
-                );
-              };
-
               if (!item.children) {
-                return <span key={item.label}>{renderLink(item, 'menu-link nav-link')}</span>;
+                return <span key={item.label}>{renderMenuLink(item, 'menu-link nav-link')}</span>;
               }
 
               return (
@@ -255,7 +284,7 @@ function Header() {
 
                   <div className="menu-dropdown">
                     {item.children.map((child) => (
-                      <span key={child.label}>{renderLink(child, 'menu-dropdownLink')}</span>
+                      <span key={child.label}>{renderMenuLink(child, 'menu-dropdownLink')}</span>
                     ))}
                   </div>
                 </div>
@@ -263,6 +292,49 @@ function Header() {
             })}
           </div>
         </nav>
+
+        <div className={`mobile-menu-panel ${isMobileMenuOpen ? 'is-open' : ''}`}>
+          <div className="mobile-menu-head">
+            <span>Menu</span>
+            <button
+              type="button"
+              aria-label="Close menu"
+              className="mobile-menu-close"
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              X
+            </button>
+          </div>
+
+          <nav className="mobile-menu-links" aria-label="Mobile navigation">
+            {MENU.map((item) => {
+              if (item.shopOnly && !SHOP_ENABLED) return null;
+
+              if (!item.children) {
+                return (
+                  <span key={item.label}>
+                    {renderMenuLink(item, 'mobile-menu-link')}
+                  </span>
+                );
+              }
+
+              return (
+                <div className="mobile-menu-group" key={item.label}>
+                  <span className="mobile-menu-label">{item.label}</span>
+                  {item.children.map((child) => (
+                    <span key={child.label}>
+                      {renderMenuLink(child, 'mobile-menu-link mobile-menu-child')}
+                    </span>
+                  ))}
+                </div>
+              );
+            })}
+          </nav>
+
+          <div className="mobile-menu-social">
+            <SocialLinks className="social-links d-flex" />
+          </div>
+        </div>
       </div>
     </header>
   );
