@@ -3,6 +3,7 @@ import AOS from 'aos';
 import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import Footer from './components/Footer.jsx';
 import Header from './components/Header.jsx';
+import Loader from './components/Loader.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { SHOP_ENABLED } from './config.js';
 import 'aos/dist/aos.css';
@@ -28,18 +29,27 @@ const Landscapes = lazy(() => import('./pages/Landscapes.jsx'));
 const Mammals = lazy(() => import('./pages/Mammals.jsx'));
 const Miscellaneous = lazy(() => import('./pages/Miscellaneous.jsx'));
 const Products = lazy(() => import('./pages/Products.jsx'));
+const CreateYourOwn = lazy(() => import('./pages/CreateYourOwn.jsx'));
 const ProductDetail = lazy(() => import('./pages/ProductDetail.jsx'));
 const ReptilesAmphibians = lazy(() => import('./pages/ReptilesAmphibians.jsx'));
 const SearchResults = lazy(() => import('./pages/SearchResults.jsx'));
 const WhatsNew = lazy(() => import('./pages/WhatsNew.jsx'));
 
+
 export const pages = [
   { name: 'Home', path: '/', component: Home },
   { name: "What's New", path: '/whats-new', component: WhatsNew },
+
   { name: 'About Us', path: '/about-us', component: AboutUs },
   { name: 'Gallery', path: '/gallery', component: Gallery },
   { name: 'Blogs', path: '/blogs', component: Blogs },
   { name: 'Products', path: '/products', component: Products, hidden: !SHOP_ENABLED },
+  {
+    name: 'Create your own',
+    path: '/create-your-own',
+    component: CreateYourOwn,
+    hidden: !SHOP_ENABLED,
+  },
   { name: 'Birds', path: '/birds', navPath: '/gallery/#birds', component: Birds },
   {
     name: 'Mammals',
@@ -77,7 +87,7 @@ export const pages = [
 function PageLoader() {
   return (
     <section className="route-loader">
-      <div className="blog-status">Loading...</div>
+      <Loader />
     </section>
   );
 }

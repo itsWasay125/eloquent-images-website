@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
 function Profile() {
+  const location = useLocation();
   const { isAuthenticated, user, updateProfile } = useAuth();
   const [form, setForm] = useState({ name: '', email: '' });
   const [error, setError] = useState('');
@@ -43,7 +44,14 @@ function Profile() {
           <div className="auth-card" data-aos="fade-up">
             <h2>Profile</h2>
             <p className="auth-sub">
-              Please <Link to="/login">log in</Link> to manage your profile.
+              Please{' '}
+              <Link
+                to="/login"
+                state={{ from: `${location.pathname}${location.search}${location.hash}` }}
+              >
+                log in
+              </Link>{' '}
+              to manage your profile.
             </p>
           </div>
         </div>

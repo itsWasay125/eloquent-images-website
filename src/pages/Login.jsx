@@ -2,14 +2,37 @@ import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 
+function isLoginPath(pathname = '') {
+  return pathname.replace(/\/+$/, '') === '/login';
+}
+
+function getLoginDestination(from) {
+  if (typeof from === 'string' && from && !isLoginPath(from)) {
+    return { to: from, options: { replace: true } };
+  }
+
+  if (from?.pathname && !isLoginPath(from.pathname)) {
+    return {
+      to: {
+        pathname: from.pathname,
+        search: from.search || '',
+        hash: from.hash || '',
+      },
+      options: {
+        replace: true,
+        state: from.state,
+      },
+    };
+  }
+
+  return { to: '/', options: { replace: true } };
+}
+
 function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const from = location.state?.from;
-  // Return the user to wherever they came from; only fall back to products if
-  // we have no origin (or it was the login page itself).
-  const redirectTo = from && from !== '/login' ? from : '/products';
 
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -26,7 +49,8 @@ function Login() {
 
     try {
       await login(form);
-      navigate(redirectTo, { replace: true });
+      const destination = getLoginDestination(from);
+      navigate(destination.to, destination.options);
     } catch (err) {
       setError(err.message || 'Login failed. Please check your details.');
     } finally {
@@ -78,7 +102,7 @@ function Login() {
           </p>
 
           <p className="auth-switch">
-            Don&apos;t have an account? <Link to="/register">Register</Link>
+            Don&apos;t have an account? <Link to="/register" state={{ from }}>Register</Link>
           </p>
         </div>
       </div>

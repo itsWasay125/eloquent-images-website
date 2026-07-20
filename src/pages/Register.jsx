@@ -1,10 +1,38 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
+
+function isAuthPath(pathname = '') {
+  return ['/login', '/register'].includes(pathname.replace(/\/+$/, ''));
+}
+
+function getRegisterDestination(from) {
+  if (typeof from === 'string' && from && !isAuthPath(from)) {
+    return { to: from, options: { replace: true } };
+  }
+
+  if (from?.pathname && !isAuthPath(from.pathname)) {
+    return {
+      to: {
+        pathname: from.pathname,
+        search: from.search || '',
+        hash: from.hash || '',
+      },
+      options: {
+        replace: true,
+        state: from.state,
+      },
+    };
+  }
+
+  return { to: '/products', options: { replace: true } };
+}
 
 function Register() {
   const { register } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from;
 
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useState('');
@@ -21,7 +49,8 @@ function Register() {
 
     try {
       await register(form);
-      navigate('/products', { replace: true });
+      const destination = getRegisterDestination(from);
+      navigate(destination.to, destination.options);
     } catch (err) {
       setError(err.message || 'Registration failed. Please try again.');
     } finally {
@@ -81,7 +110,7 @@ function Register() {
           </form>
 
           <p className="auth-switch">
-            Already have an account? <Link to="/login">Login</Link>
+            Already have an account? <Link to="/login" state={{ from }}>Login</Link>
           </p>
         </div>
       </div>

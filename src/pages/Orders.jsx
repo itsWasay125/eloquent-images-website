@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { fetchMyOrders } from '../api/printful/checkout.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -14,6 +14,7 @@ function formatMoney(amount, currency = 'USD') {
 }
 
 function Orders() {
+  const location = useLocation();
   const { isAuthenticated } = useAuth();
   const [orders, setOrders] = useState([]);
   const [status, setStatus] = useState('loading');
@@ -54,7 +55,11 @@ function Orders() {
         {status === 'unauthenticated' && (
           <div className="blog-status">
             Please{' '}
-            <Link className="cart-emptyLink" to="/login">
+            <Link
+              className="cart-emptyLink"
+              to="/login"
+              state={{ from: `${location.pathname}${location.search}${location.hash}` }}
+            >
               log in
             </Link>{' '}
             to view your orders.

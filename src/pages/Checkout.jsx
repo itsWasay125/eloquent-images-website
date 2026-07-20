@@ -41,7 +41,8 @@ function Field({ name, address, errors, onChange, type = 'text', placeholder, in
 }
 
 function Checkout() {
-  const { state } = useLocation();
+  const location = useLocation();
+  const { state } = location;
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
 
@@ -82,7 +83,18 @@ function Checkout() {
         <div className="container">
           <div className="blog-status">
             Please{' '}
-            <Link className="cart-emptyLink" to="/login">
+            <Link
+              className="cart-emptyLink"
+              to="/login"
+              state={{
+                from: {
+                  pathname: location.pathname,
+                  search: location.search,
+                  hash: location.hash,
+                  state,
+                },
+              }}
+            >
               log in
             </Link>{' '}
             to complete your order.

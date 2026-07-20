@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   fetchPrintfulProductDetail,
   fetchPrintfulProductSizes,
@@ -7,9 +7,12 @@ import {
 import { fetchGalleryCategories, fetchAllCategoryImages } from '../api/gallery.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import RemoteImage from '../components/RemoteImage.jsx';
+import Loader from '../components/Loader.jsx';
+import { sortGalleryCategories } from '../data/galleryCategoryOrder.js';
 
 function ProductDetail() {
   const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const designParam = searchParams.get('design');
@@ -66,8 +69,9 @@ function ProductDetail() {
     fetchGalleryCategories()
       .then((categories) => {
         if (cancelled || !categories.length) return;
-        setGalleryCategories(categories);
-        setActiveCategoryId(categories[0].id);
+        const orderedCategories = sortGalleryCategories(categories);
+        setGalleryCategories(orderedCategories);
+        setActiveCategoryId(orderedCategories[0].id);
       })
       .catch((error) => console.error('Unable to load gallery categories:', error));
     return () => {
@@ -160,7 +164,9 @@ function ProductDetail() {
   function handleBuyNow() {
     setFeedback('');
     if (!isAuthenticated) {
-      navigate('/login', { state: { from: `/products/${id}` } });
+      navigate('/login', {
+        state: { from: `${location.pathname}${location.search}${location.hash}` },
+      });
       return;
     }
     if (!selectedDesign) {
@@ -194,7 +200,7 @@ function ProductDetail() {
     return (
       <section className="productDetail">
         <div className="container">
-          <div className="blog-status">Loading product...</div>
+          <Loader label="Loading product…" />
         </div>
       </section>
     );

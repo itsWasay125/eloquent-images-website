@@ -86,7 +86,7 @@ function ProductPickerModal({ image, onClose }) {
           </svg>
           <input
             type="search"
-            placeholder="Search products (t-shirt, mug, hoodie…)"
+            placeholder="Search products (frames, posters, canvas…)"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             autoFocus

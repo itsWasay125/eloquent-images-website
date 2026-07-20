@@ -1,5 +1,3 @@
-import { Link } from 'react-router-dom';
-
 function FacebookIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -52,9 +50,19 @@ function SocialLinks({ className = '' }) {
   return (
     <div className={className}>
       {socialLinks.map(({ icon: Icon, label, path }) => (
-        <Link aria-label={label} className="social-icon" key={label} to={path}>
+        <a
+          aria-label={label}
+          className="social-icon"
+          href={path}
+          key={label}
+          target={path === '#' ? undefined : '_blank'}
+          rel={path === '#' ? undefined : 'noopener noreferrer'}
+          onClick={(event) => {
+            if (path === '#') event.preventDefault();
+          }}
+        >
           <Icon />
-        </Link>
+        </a>
       ))}
     </div>
   );

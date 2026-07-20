@@ -2,10 +2,22 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import bannerImage from '../assets/banner-image.jpg';
 import { useAuth } from '../context/AuthContext.jsx';
+import { IMAGE_CATEGORIES } from '../data/galleryCategoryOrder.js';
 import SocialLinks from './SocialLinks.jsx';
 import { SHOP_ENABLED } from '../config.js';
 
-function Header({ pages }) {
+// Exact horizontal menu order requested by the client.
+const MENU = [
+  { label: 'Home', path: '/' },
+  { label: 'Gallery', path: '/gallery' },
+  { label: 'Blogs', path: '/blogs' },
+  { label: 'Images', children: IMAGE_CATEGORIES },
+  { label: 'Products', path: '/products', shopOnly: true },
+  { label: 'Create your own', path: '/create-your-own', shopOnly: true },
+  { label: 'About Us', path: '/about-us' },
+];
+
+function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated, user, logout } = useAuth();
@@ -14,6 +26,7 @@ function Header({ pages }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const currentPath = `${location.pathname}${location.search}${location.hash}`;
 
   const userInitial = (user?.name?.trim()?.[0] || 'U').toUpperCase();
 
@@ -181,7 +194,7 @@ function Header({ pages }) {
                 <Link
                   className="auth-login-link"
                   to="/login"
-                  state={{ from: `${location.pathname}${location.search}` }}
+                  state={{ from: currentPath }}
                 >
                   Login
                 </Link>
@@ -194,24 +207,58 @@ function Header({ pages }) {
 
         <nav className="main-menu navbar navbar-expand">
           <div className="container justify-content-center flex-wrap">
-            {pages.filter((page) => !page.hidden).map((page) => {
-              const linkPath = page.navPath ?? page.path;
-              const isHashLink = linkPath.includes('#');
-              const isActive = isHashLink
-                ? `${location.pathname}${location.hash}` === linkPath
-                : location.pathname === page.path;
+            {MENU.map((item) => {
+              if (item.shopOnly && !SHOP_ENABLED) return null;
+
+              const renderLink = (entry, className) => {
+                const to = entry.navPath ?? entry.path;
+                const isHashLink = to.includes('#');
+                const isActive = isHashLink
+                  ? `${location.pathname}${location.hash}` === to
+                  : location.pathname === entry.path;
+                return (
+                  <NavLink
+                    className={`${className}${isActive ? ' menu-link-active' : ''}`}
+                    onClick={(event) => handleMenuClick(event, to)}
+                    to={to}
+                  >
+                    {entry.label}
+                  </NavLink>
+                );
+              };
+
+              if (!item.children) {
+                return <span key={item.label}>{renderLink(item, 'menu-link nav-link')}</span>;
+              }
 
               return (
-                <NavLink
-                  className={`menu-link nav-link${
-                    isActive ? ' menu-link-active' : ''
-                  }`}
-                  key={`${page.name}-${linkPath}`}
-                  onClick={(event) => handleMenuClick(event, linkPath)}
-                  to={linkPath}
-                >
-                  {page.name}
-                </NavLink>
+                <div className="menu-group" key={item.label}>
+                  {item.path ? (
+                    <NavLink
+                      className="menu-link nav-link menu-groupToggle"
+                      to={item.path}
+                      onClick={(event) => handleMenuClick(event, item.path)}
+                    >
+                      {item.label}
+                      <svg className="menu-caret" aria-hidden="true" viewBox="0 0 24 24">
+                        <path d="m7 10 5 5 5-5z" />
+                      </svg>
+                    </NavLink>
+                  ) : (
+                    <span className="menu-link nav-link menu-groupToggle">
+                      {item.label}
+                      <svg className="menu-caret" aria-hidden="true" viewBox="0 0 24 24">
+                        <path d="m7 10 5 5 5-5z" />
+                      </svg>
+                    </span>
+                  )}
+
+                  <div className="menu-dropdown">
+                    {item.children.map((child) => (
+                      <span key={child.label}>{renderLink(child, 'menu-dropdownLink')}</span>
+                    ))}
+                  </div>
+                </div>
               );
             })}
           </div>

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { fetchPrintfulProducts, fetchPrintfulCategories } from '../api/printful/catalog.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import RemoteImage from '../components/RemoteImage.jsx';
+import Loader from '../components/Loader.jsx';
 
 const PAGE_SIZE = 12;
 
@@ -92,6 +93,7 @@ function Pagination({ page, totalPages, onChange }) {
 }
 
 function Products() {
+  const location = useLocation();
   const { isAuthenticated } = useAuth();
   const [products, setProducts] = useState([]);
   const [status, setStatus] = useState('loading');
@@ -122,7 +124,7 @@ function Products() {
         const named = categories
           ? items.map((product) => ({
               ...product,
-              category: categories.byId.get(product.mainCategoryId) || product.category,
+              category: categories.byId.get(String(product.mainCategoryId)) || product.category,
             }))
           : items;
 
@@ -168,7 +170,11 @@ function Products() {
             <div className="col-12">
               <div className="blog-status">
                 Please{' '}
-                <Link className="cart-emptyLink" to="/login">
+                <Link
+                  className="cart-emptyLink"
+                  to="/login"
+                  state={{ from: `${location.pathname}${location.search}${location.hash}` }}
+                >
                   log in
                 </Link>{' '}
                 to view products.
@@ -177,7 +183,7 @@ function Products() {
           )}
           {status === 'loading' && (
             <div className="col-12">
-              <div className="blog-status">Loading products...</div>
+              <Loader label="Loading products…" />
             </div>
           )}
           {status === 'error' && (

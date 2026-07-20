@@ -6,6 +6,8 @@ import {
   fetchGalleryCategories,
 } from '../api/gallery.js';
 import ProductPickerModal from '../components/ProductPickerModal.jsx';
+import Loader from '../components/Loader.jsx';
+import { sortGalleryCategories } from '../data/galleryCategoryOrder.js';
 import { waitForIdle } from '../utils/loadScheduling.js';
 import '@fancyapps/ui/dist/fancybox/fancybox.css';
 
@@ -69,7 +71,7 @@ function GalleryCardImage({ image, index }) {
   );
 }
 
-function Gallery() {
+function Gallery({ withProductFlow = false }) {
   const location = useLocation();
   const galleryRef = useRef(null);
   const [apiCategories, setApiCategories] = useState([]);
@@ -98,13 +100,12 @@ function Gallery() {
   }, []);
 
   const categorySections = useMemo(() => {
-    return apiCategories
+    return sortGalleryCategories(apiCategories)
       .map((cat) => ({
         title: cat.name,
         slug: cat.slug,
         id: cat.id,
-      }))
-      .reverse();
+      }));
   }, [apiCategories]);
 
   const requestedSlug =
@@ -218,9 +219,7 @@ function Gallery() {
             )}
             {status === 'ready' && categorySections.length > 0 && (
               <>
-                {imagesStatus === 'loading' && (
-                  <div className="gallery-empty">Loading images...</div>
-                )}
+                {imagesStatus === 'loading' && <Loader label="Loading images…" />}
                 {imagesStatus === 'error' && (
                   <div className="gallery-empty">
                     Images could not be loaded. Please try again later.
@@ -247,16 +246,18 @@ function Gallery() {
                               {image.caption}
                             </span>
                           </button>
-                          <button
-                            className="galleryImages-useBtn"
-                            type="button"
-                            onClick={() => setPickerImage(image)}
-                          >
-                            <svg aria-hidden="true" viewBox="0 0 24 24">
-                              <path d="M21 7 9 19l-5.5-5.5 1.4-1.4L9 16.2 19.6 5.6 21 7Z" />
-                            </svg>
-                            Use on a product
-                          </button>
+                          {withProductFlow && (
+                            <button
+                              className="galleryImages-useBtn"
+                              type="button"
+                              onClick={() => setPickerImage(image)}
+                            >
+                              <svg aria-hidden="true" viewBox="0 0 24 24">
+                                <path d="M21 7 9 19l-5.5-5.5 1.4-1.4L9 16.2 19.6 5.6 21 7Z" />
+                              </svg>
+                              Use on a product
+                            </button>
+                          )}
                         </div>
                       </div>
                     ))}
@@ -268,7 +269,7 @@ function Gallery() {
         </div>
       </div>
 
-      {pickerImage && (
+      {withProductFlow && pickerImage && (
         <ProductPickerModal image={pickerImage} onClose={() => setPickerImage(null)} />
       )}
     </section>

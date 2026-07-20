@@ -77,14 +77,92 @@ function isEmbroideryProduct(product) {
   return primary?.key === 'EMBROIDERY';
 }
 
-// The store only sells wall-art / frame products. A product qualifies if its
-// title/type/model mentions any of these keywords. Edit this list to change
-// which products appear across the whole site.
-const FRAME_KEYWORDS = ['frame', 'poster', 'canvas', 'wall art'];
+// The store only sells printable wall-art pieces. Prefer Printful's category
+// tree, but still require frame/poster/canvas/print wording so clothes,
+// accessories, shoes, clocks, mugs, and other catalog items never slip in.
+const WALL_ART_CATEGORY_TITLES = ['wall art'];
+const WALL_ART_ALLOWED_CATEGORY_TITLES = [
+  'posters',
+  'framed posters',
+  'canvas prints',
+  'metal prints',
+];
+const WALL_ART_PRINT_KEYWORDS = [
+  'poster',
+  'posters',
+  'framed poster',
+  'framed posters',
+  'canvas',
+  'canvas print',
+  'canvas prints',
+  'metal print',
+  'metal prints',
+  'acrylic print',
+  'acrylic prints',
+  'wood print',
+  'wood prints',
+  'photo paper',
+  'fine art',
+];
 
-function isFrameProduct(product) {
+function normalizeTitle(title) {
+  return String(title || '').toLowerCase();
+}
+
+function collectCategoryIdsByTitle(categories, titles) {
+  if (!Array.isArray(categories) || !categories.length) return new Set();
+  const normalizedTitles = new Set(titles.map(normalizeTitle));
+
+  return new Set(
+    categories
+      .filter((category) => normalizedTitles.has(normalizeTitle(category.title)))
+      .map((category) => String(category.id)),
+  );
+}
+
+function collectCategoryDescendants(categories, rootTitles) {
+  if (!Array.isArray(categories) || !categories.length) return new Set();
+
+  const normalizedRoots = new Set(rootTitles.map(normalizeTitle));
+  const childrenByParent = new Map();
+  const roots = [];
+
+  for (const category of categories) {
+    const parentId = String(category.parent_id ?? category.parentId ?? 0);
+    if (!childrenByParent.has(parentId)) childrenByParent.set(parentId, []);
+    childrenByParent.get(parentId).push(category);
+
+    if (normalizedRoots.has(normalizeTitle(category.title))) {
+      roots.push(category);
+    }
+  }
+
+  const ids = new Set();
+  const stack = [...roots];
+  while (stack.length) {
+    const category = stack.pop();
+    const categoryId = String(category?.id ?? '');
+    if (!categoryId || ids.has(categoryId)) continue;
+    ids.add(categoryId);
+    stack.push(...(childrenByParent.get(categoryId) || []));
+  }
+
+  return ids;
+}
+
+function isWallArtProduct(product, wallArtCategoryIds = null, allowedCategoryIds = null) {
+  if (allowedCategoryIds?.has(String(product.main_category_id))) {
+    return true;
+  }
+
   const haystack = `${product.title || ''} ${product.type_name || ''} ${product.model || ''}`.toLowerCase();
-  return FRAME_KEYWORDS.some((keyword) => haystack.includes(keyword));
+  const isPrintProduct = WALL_ART_PRINT_KEYWORDS.some((keyword) => haystack.includes(keyword));
+
+  if (wallArtCategoryIds?.size) {
+    return wallArtCategoryIds.has(String(product.main_category_id)) && isPrintProduct;
+  }
+
+  return isPrintProduct;
 }
 
 function mapCatalogProduct(product) {
@@ -106,15 +184,29 @@ export async function fetchPrintfulProducts() {
   if (productsRequest) return productsRequest;
 
   productsRequest = fetchJson(`${API_BASE}/api/printful-get-products`)
-    .then((payload) => {
+    .then(async (payload) => {
       console.log('[Printful][catalog] GET /printful-get-products ->', payload);
 
       if (!payload.success || !Array.isArray(payload.data)) {
         throw new Error('The Printful products response is invalid');
       }
 
+      const categories = await fetchPrintfulCategories().catch(() => null);
+      const wallArtCategoryIds = collectCategoryDescendants(
+        categories?.list,
+        WALL_ART_CATEGORY_TITLES,
+      );
+      const allowedCategoryIds = collectCategoryIdsByTitle(
+        categories?.list,
+        WALL_ART_ALLOWED_CATEGORY_TITLES,
+      );
+
       productsCache = payload.data
-        .filter((product) => isFrameProduct(product) && !isEmbroideryProduct(product))
+        .filter(
+          (product) =>
+            isWallArtProduct(product, wallArtCategoryIds, allowedCategoryIds) &&
+            !isEmbroideryProduct(product),
+        )
         .map(mapCatalogProduct);
       return productsCache;
     })
@@ -143,7 +235,7 @@ export async function fetchPrintfulCategories() {
         throw new Error('The Printful categories response is invalid');
       }
 
-      const byId = new Map(list.map((c) => [c.id, c.title]));
+      const byId = new Map(list.map((c) => [String(c.id), c.title]));
       categoriesCache = { list, byId };
       return categoriesCache;
     })

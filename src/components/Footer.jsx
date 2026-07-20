@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { IMAGE_CATEGORIES } from '../data/galleryCategoryOrder.js';
 import SocialLinks from './SocialLinks.jsx';
 
 const quickLinks = [
@@ -9,12 +10,10 @@ const quickLinks = [
     { name: 'Blogs', path: '/blogs' },
     { name: 'Contact Us', path: '/contact-us' },
   ],
-  [
-    { name: 'Birds', path: '/gallery/#birds' },
-    { name: 'Mammals', path: '/gallery/#mammals' },
-    { name: 'Insects & Spiders', path: '/gallery/#insects-spiders' },
-    { name: 'Reptiles & Amphibians', path: '/gallery/#reptiles-amphibians' },
-  ],
+  IMAGE_CATEGORIES.map((category) => ({
+    name: category.label,
+    path: category.navPath,
+  })),
 ];
 
 function Footer() {

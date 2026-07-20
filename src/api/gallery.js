@@ -14,6 +14,18 @@ function getImageName(image) {
   );
 }
 
+// Clean up titles from raw file imports: drop trailing "(1)"-style numbers,
+// turn hyphens/underscores into spaces, and collapse extra whitespace.
+function cleanCaption(name = '') {
+  return name
+    .replace(/\.[a-z0-9]{2,4}$/i, '') // strip a leftover file extension
+    .replace(/\s*\(\s*\d+\s*\)/g, '') // remove "(1)", "( 2 )" etc.
+    .replace(/[-_]+/g, ' ') // hyphens/underscores -> spaces
+    .replace(/\s+\d+\s*$/, '') // drop a trailing number like "American Robin 4"
+    .replace(/\s+/g, ' ') // collapse repeated spaces
+    .trim();
+}
+
 async function fetchJson(url, signal) {
   const response = await fetch(url, { signal });
 
@@ -29,9 +41,41 @@ function mapApiImages(images = []) {
     .filter((image) => image.imageUrl)
     .map((image) => ({
       src: image.imageUrl,
-      caption: getImageName(image),
+      caption: cleanCaption(getImageName(image)),
       type: 'image',
+      // Kept so callers can sort a merged, cross-category feed newest-first.
+      createdAt: image.createdAt || image.created_at || null,
     }));
+}
+
+function hasIsNewFlag(image) {
+  return (
+    Object.prototype.hasOwnProperty.call(image, 'isNew') ||
+    Object.prototype.hasOwnProperty.call(image, 'is_new')
+  );
+}
+
+function isMarkedNew(image) {
+  return (
+    image.isNew === true ||
+    image.is_new === true ||
+    String(image.isNew).toLowerCase() === 'true' ||
+    String(image.is_new).toLowerCase() === 'true'
+  );
+}
+
+function getWhatsNewSortDate(image) {
+  return (
+    image.isNewAt ||
+    image.is_new_at ||
+    image.isNewUpdatedAt ||
+    image.is_new_updated_at ||
+    image.updatedAt ||
+    image.updated_at ||
+    image.createdAt ||
+    image.created_at ||
+    null
+  );
 }
 
 export async function fetchGalleryCategories() {
@@ -76,6 +120,30 @@ export async function fetchGalleryImages(signal) {
   }
 
   return mapApiImages(data.data);
+}
+
+// Fetch the latest N images across all categories that are marked as "What's New"
+export async function fetchLatestImages(limit = 15, signal) {
+  const params = new URLSearchParams({ limit: '100', is_new: 'true' });
+  const data = await fetchJson(`${API_BASE}/api/images?${params.toString()}`, signal);
+
+  if (!data.success || !Array.isArray(data.data)) {
+    throw new Error('The images response is invalid');
+  }
+
+  let newImages = data.data;
+
+  // The backend filters by is_new but does not always echo isNew in the list
+  // response. Only apply the local fallback when the flag is actually present.
+  if (newImages.some(hasIsNewFlag)) {
+    newImages = newImages.filter(isMarkedNew);
+  }
+
+  newImages = [...newImages].sort(
+    (a, b) => new Date(getWhatsNewSortDate(b) || 0) - new Date(getWhatsNewSortDate(a) || 0),
+  );
+
+  return mapApiImages(newImages.slice(0, limit));
 }
 
 // Every image in a category (walks all pages) — used by the product detail
