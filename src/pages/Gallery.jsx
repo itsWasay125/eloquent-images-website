@@ -114,6 +114,7 @@ function Gallery({ withProductFlow = false }) {
     categorySections.find((s) => s.slug === requestedSlug) ??
     categorySections.find((s) => s.slug === 'gallery') ??
     categorySections[0];
+  const visibleCategorySections = categorySections.filter((section) => section.slug !== 'gallery');
 
   useEffect(() => {
     if (!activeSection) return undefined;
@@ -192,7 +193,7 @@ function Gallery({ withProductFlow = false }) {
         <div className="row g-4">
           <div className="col-lg-3" data-aos="fade-up">
             <nav className="galleryImages-nav" aria-label="Gallery categories">
-              {categorySections.map((section) => (
+              {visibleCategorySections.map((section) => (
                 <Link
                   className={
                     section.slug === activeSection?.slug
