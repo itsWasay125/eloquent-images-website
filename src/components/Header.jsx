@@ -6,12 +6,14 @@ import { IMAGE_CATEGORIES } from '../data/galleryCategoryOrder.js';
 import SocialLinks from './SocialLinks.jsx';
 import { SHOP_ENABLED } from '../config.js';
 
+const DROPDOWN_IMAGE_CATEGORIES = IMAGE_CATEGORIES.filter((category) => category.slug !== 'gallery');
+
 // Exact horizontal menu order requested by the client.
 const MENU = [
   { label: 'Home', path: '/' },
-  { label: 'Gallery', path: '/gallery' },
+  { label: 'Gallery', path: '/gallery/#gallery' },
   { label: 'Blogs', path: '/blogs' },
-  { label: 'Images', children: IMAGE_CATEGORIES },
+  { label: 'Images', children: DROPDOWN_IMAGE_CATEGORIES },
   { label: 'Products', path: '/products', shopOnly: true },
   { label: 'Create your own', path: '/create-your-own', shopOnly: true },
   { label: 'About Us', path: '/about-us' },

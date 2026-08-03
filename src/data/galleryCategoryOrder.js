@@ -1,4 +1,5 @@
 export const IMAGE_CATEGORIES = [
+  { label: 'Gallery', navPath: '/gallery/#gallery', slug: 'gallery' },
   { label: 'Birds', navPath: '/gallery/#birds', slug: 'birds' },
   { label: 'Mammals', navPath: '/gallery/#mammals', slug: 'mammals' },
   { label: 'Insects & Spiders', navPath: '/gallery/#insects-spiders', slug: 'insects-spiders' },

@@ -109,7 +109,7 @@ function Gallery({ withProductFlow = false }) {
   }, [apiCategories]);
 
   const requestedSlug =
-    location.state?.gallerySlug ?? location.hash.replace('#', '');
+    (location.state?.gallerySlug ?? location.hash.replace('#', '')) || 'gallery';
   const activeSection =
     categorySections.find((s) => s.slug === requestedSlug) ??
     categorySections.find((s) => s.slug === 'gallery') ??
