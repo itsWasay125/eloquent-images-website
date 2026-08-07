@@ -20,7 +20,7 @@
 
 import { getToken } from '../authToken.js';
 
-const API_BASE = 'https://eloquent.koderspedia.online';
+const API_BASE = 'https://api.eloquent-image.com';
 
 // Simple in-memory caches so we don't re-hit the network on every navigation.
 let productsCache = null;

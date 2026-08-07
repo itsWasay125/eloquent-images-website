@@ -1,15 +1,14 @@
-const API_BASE = 'https://eloquent.koderspedia.online';
+const API_BASE = 'https://api.eloquent-image.com';
 
 let categoriesCache = null;
 let categoriesRequest = null;
-const imagePageCache = new Map();
 
 function getImageName(image) {
   return (
+    image.title ||
     image.originalName ||
     image.fileName ||
     image.filename ||
-    image.title ||
     'Original name unavailable'
   );
 }
@@ -27,7 +26,7 @@ function cleanCaption(name = '') {
 }
 
 async function fetchJson(url, signal) {
-  const response = await fetch(url, { signal });
+  const response = await fetch(url, { cache: 'no-store', signal });
 
   if (!response.ok) {
     throw new Error(`Request failed with status ${response.status}`);
@@ -40,12 +39,48 @@ function mapApiImages(images = []) {
   return images
     .filter((image) => image.imageUrl)
     .map((image) => ({
+      id: image.id,
       src: image.imageUrl,
       caption: cleanCaption(getImageName(image)),
+      categories: image.categories || [],
       type: 'image',
       // Kept so callers can sort a merged, cross-category feed newest-first.
       createdAt: image.createdAt || image.created_at || null,
     }));
+}
+
+function getImageSortOrder(image, categoryId) {
+  const category = (image.categories || []).find(
+    (cat) => String(cat.id ?? cat.categoryId) === String(categoryId),
+  );
+  const sortOrder = Number(category?.sortOrder);
+  return Number.isFinite(sortOrder) && sortOrder > 0 ? sortOrder : null;
+}
+
+function sortByCaption(images = []) {
+  return [...images].sort((first, second) =>
+    (first.caption || '').localeCompare(second.caption || '', undefined, {
+      numeric: true,
+      sensitivity: 'base',
+    }),
+  );
+}
+
+function sortImagesForCategory(images = [], categoryId) {
+  const hasSortOrder = images.some((image) => getImageSortOrder(image, categoryId) !== null);
+  if (categoryId && !hasSortOrder) return [...images];
+
+  return [...images].sort((first, second) => {
+    const firstOrder = getImageSortOrder(first, categoryId);
+    const secondOrder = getImageSortOrder(second, categoryId);
+
+    if (firstOrder !== null && secondOrder !== null && firstOrder !== secondOrder) {
+      return firstOrder - secondOrder;
+    }
+    if (firstOrder !== null || secondOrder !== null) return firstOrder !== null ? -1 : 1;
+
+    return sortByCaption([first, second])[0] === first ? -1 : 1;
+  });
 }
 
 function hasIsNewFlag(image) {
@@ -149,13 +184,13 @@ export async function fetchLatestImages(limit = 15, signal) {
 // Every image in a category (walks all pages) — used by the product detail
 // design picker so the chosen category shows its full set, not just page 1.
 export async function fetchAllCategoryImages(categoryId, signal) {
-  const first = await fetchCategoryImagesPage(categoryId, 1, signal);
+  const first = await fetchCategoryImagesPage(categoryId, 1, signal, 100);
   const totalPages = first.meta?.totalPages ?? 1;
-  if (totalPages <= 1) return first.images;
+  if (totalPages <= 1) return sortImagesForCategory(first.images, categoryId);
 
   const rest = await Promise.all(
     Array.from({ length: totalPages - 1 }, (_, index) =>
-      fetchCategoryImagesPage(categoryId, index + 2, signal).catch(() => null),
+      fetchCategoryImagesPage(categoryId, index + 2, signal, 100).catch(() => null),
     ),
   );
 
@@ -164,14 +199,17 @@ export async function fetchAllCategoryImages(categoryId, signal) {
     .flatMap((page) => (page ? page.images : []))
     .filter((image) => !seen.has(image.src));
 
-  return first.images.concat(more);
+  return sortImagesForCategory(first.images.concat(more), categoryId);
 }
 
-export async function fetchCategoryImagesPage(categoryId, page = 1, signal) {
-  const key = `${categoryId}:${page}`;
-  if (imagePageCache.has(key)) return imagePageCache.get(key);
-
-  const params = new URLSearchParams({ page: String(page) });
+export async function fetchCategoryImagesPage(categoryId, page = 1, signal, limit = 100) {
+  const params = new URLSearchParams({
+    page: String(page),
+    limit: String(limit),
+    sortBy: categoryId ? 'sortOrder' : 'title',
+    order: 'asc',
+    _: String(Date.now()),
+  });
   if (categoryId) params.set('categoryId', categoryId);
 
   const data = await fetchJson(`${API_BASE}/api/images?${params.toString()}`, signal);
@@ -180,7 +218,7 @@ export async function fetchCategoryImagesPage(categoryId, page = 1, signal) {
     throw new Error('The images response is invalid');
   }
 
-  const result = {
+  return {
     images: mapApiImages(data.data),
     meta: {
       currentPage: data.meta?.currentPage ?? page,
@@ -188,7 +226,4 @@ export async function fetchCategoryImagesPage(categoryId, page = 1, signal) {
       totalPages: data.meta?.totalPages ?? 1,
     },
   };
-
-  imagePageCache.set(key, result);
-  return result;
 }

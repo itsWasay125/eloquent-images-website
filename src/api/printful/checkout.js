@@ -2,7 +2,7 @@
 
 import { getToken } from '../authToken.js';
 
-const API_BASE = 'https://eloquent.koderspedia.online';
+const API_BASE = 'https://api.eloquent-image.com';
 
 export async function createPrintfulCheckout({ recipient, items }) {
   const token = getToken();

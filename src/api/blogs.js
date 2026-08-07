@@ -1,4 +1,4 @@
-const API_BASE = 'https://eloquent.koderspedia.online';
+const API_BASE = 'https://api.eloquent-image.com';
 
 const BLOCKED_TAGS = [
   'script',

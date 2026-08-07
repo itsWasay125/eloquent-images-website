@@ -1,6 +1,6 @@
 import { getToken } from './authToken.js';
 
-const API_BASE = 'https://eloquent.koderspedia.online';
+const API_BASE = 'https://api.eloquent-image.com';
 
 async function authPost(path, body) {
   const token = getToken();

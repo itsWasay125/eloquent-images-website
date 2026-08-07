@@ -2,16 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Fancybox, ToolbarColumn } from '@fancyapps/ui';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  fetchCategoryImagesPage,
+  fetchAllCategoryImages,
   fetchGalleryCategories,
 } from '../api/gallery.js';
 import ProductPickerModal from '../components/ProductPickerModal.jsx';
 import Loader from '../components/Loader.jsx';
 import { sortGalleryCategories } from '../data/galleryCategoryOrder.js';
-import { waitForIdle } from '../utils/loadScheduling.js';
 import '@fancyapps/ui/dist/fancybox/fancybox.css';
 
-const BACKGROUND_PAGE_BATCH_SIZE = 6;
 // Only the first row or two are above the fold; the browser's native lazy
 // loading handles the rest, fetching images as they approach the viewport.
 const EAGER_GALLERY_IMAGES = 6;
@@ -127,41 +125,10 @@ function Gallery({ withProductFlow = false }) {
 
     async function loadImages() {
       try {
-        const first = await fetchCategoryImagesPage(activeSection.id, 1, signal);
+        const categoryImages = await fetchAllCategoryImages(activeSection.id, signal);
         if (cancelled) return;
-        setImages(first.images);
+        setImages(categoryImages);
         setImagesStatus('ready');
-
-        const totalPages = first.meta?.totalPages ?? 1;
-        const remainingPages = Array.from(
-          { length: totalPages - 1 },
-          (_, index) => index + 2,
-        );
-
-        for (let index = 0; index < remainingPages.length; index += BACKGROUND_PAGE_BATCH_SIZE) {
-          if (index > 0) {
-            await waitForIdle(120);
-          }
-          if (cancelled) return;
-
-          const batch = remainingPages.slice(index, index + BACKGROUND_PAGE_BATCH_SIZE);
-          const pages = await Promise.all(
-            batch.map((page) =>
-              fetchCategoryImagesPage(activeSection.id, page, signal).catch(() => null),
-            ),
-          );
-          if (cancelled) return;
-
-          const moreImages = pages.flatMap((page) => page?.images ?? []);
-          if (moreImages.length) {
-            setImages((current) => {
-              const seen = new Set(current.map((image) => image.src));
-              return current.concat(
-                moreImages.filter((image) => !seen.has(image.src)),
-              );
-            });
-          }
-        }
       } catch (error) {
         if (!cancelled && error.name !== 'AbortError') setImagesStatus('error');
       }

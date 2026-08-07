@@ -1,4 +1,4 @@
-const API_BASE = 'https://eloquent.koderspedia.online';
+const API_BASE = 'https://api.eloquent-image.com';
 
 export async function submitContact(contact) {
   const response = await fetch(`${API_BASE}/api/contact`, {
