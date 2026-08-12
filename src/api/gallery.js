@@ -13,13 +13,31 @@ function getImageName(image) {
   );
 }
 
+function getWhatsNewFact(image) {
+  return (
+    image.whatsNewFact ||
+    image.whats_new_fact ||
+    image.interestingFact ||
+    image.interesting_fact ||
+    image.titles ||
+    image.newTitleUpdate ||
+    image.newTitleUpdatw ||
+    image.new_title_update ||
+    image.newTitle ||
+    image.new_title ||
+    image.isNewTitle ||
+    image.is_new_title ||
+    ''
+  );
+}
+
 // Clean up titles from raw file imports: drop trailing "(1)"-style numbers,
-// turn hyphens/underscores into spaces, and collapse extra whitespace.
+// turn underscores into spaces, and collapse extra whitespace. Hyphens are intentional.
 function cleanCaption(name = '') {
   return name
     .replace(/\.[a-z0-9]{2,4}$/i, '') // strip a leftover file extension
     .replace(/\s*\(\s*\d+\s*\)/g, '') // remove "(1)", "( 2 )" etc.
-    .replace(/[-_]+/g, ' ') // hyphens/underscores -> spaces
+    .replace(/_+/g, ' ') // underscores -> spaces
     .replace(/\s+\d+\s*$/, '') // drop a trailing number like "American Robin 4"
     .replace(/\s+/g, ' ') // collapse repeated spaces
     .trim();
@@ -42,6 +60,7 @@ function mapApiImages(images = []) {
       id: image.id,
       src: image.imageUrl,
       caption: cleanCaption(getImageName(image)),
+      whatsNewFact: cleanCaption(getWhatsNewFact(image)),
       categories: image.categories || [],
       type: 'image',
       // Kept so callers can sort a merged, cross-category feed newest-first.
@@ -66,7 +85,11 @@ function sortByCaption(images = []) {
   );
 }
 
-function sortImagesForCategory(images = [], categoryId) {
+function sortImagesForCategory(images = [], categoryId, categorySlug = '') {
+  if (String(categorySlug).toLowerCase() === 'birds') {
+    return sortByCaption(images);
+  }
+
   const hasSortOrder = images.some((image) => getImageSortOrder(image, categoryId) !== null);
   if (categoryId && !hasSortOrder) return [...images];
 
@@ -183,10 +206,10 @@ export async function fetchLatestImages(limit = 15, signal) {
 
 // Every image in a category (walks all pages) — used by the product detail
 // design picker so the chosen category shows its full set, not just page 1.
-export async function fetchAllCategoryImages(categoryId, signal) {
+export async function fetchAllCategoryImages(categoryId, signal, options = {}) {
   const first = await fetchCategoryImagesPage(categoryId, 1, signal, 100);
   const totalPages = first.meta?.totalPages ?? 1;
-  if (totalPages <= 1) return sortImagesForCategory(first.images, categoryId);
+  if (totalPages <= 1) return sortImagesForCategory(first.images, categoryId, options.categorySlug);
 
   const rest = await Promise.all(
     Array.from({ length: totalPages - 1 }, (_, index) =>
@@ -199,7 +222,7 @@ export async function fetchAllCategoryImages(categoryId, signal) {
     .flatMap((page) => (page ? page.images : []))
     .filter((image) => !seen.has(image.src));
 
-  return sortImagesForCategory(first.images.concat(more), categoryId);
+  return sortImagesForCategory(first.images.concat(more), categoryId, options.categorySlug);
 }
 
 export async function fetchCategoryImagesPage(categoryId, page = 1, signal, limit = 100) {

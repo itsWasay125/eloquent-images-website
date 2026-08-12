@@ -12,7 +12,12 @@ const SLIDE_AUTOPLAY_MS = 3500;
 const SLIDE_TRANSITION_MS = 850;
 
 function openFancybox(slides, startIndex) {
-  Fancybox.show(slides, {
+  const lightboxSlides = slides.map(({ whatsNewFact, caption, ...slide }) => ({
+    ...slide,
+    caption: '',
+  }));
+
+  Fancybox.show(lightboxSlides, {
     startIndex,
     theme: 'dark',
     Carousel: {
@@ -40,6 +45,7 @@ function openFancybox(slides, startIndex) {
 function WhatsNew() {
   const [images, setImages] = useState([]);
   const [status, setStatus] = useState('loading');
+  const [activeIndex, setActiveIndex] = useState(0);
   const swiperRef = useRef(null);
 
   useEffect(() => {
@@ -53,6 +59,7 @@ function WhatsNew() {
         if (cancelled) return;
 
         setImages(latestImages);
+        setActiveIndex(0);
         setStatus('ready');
       } catch (error) {
         if (!cancelled && error.name !== 'AbortError') {
@@ -71,6 +78,7 @@ function WhatsNew() {
   }, []);
 
   const hasLoop = images.length > 1;
+  const activeFact = images[activeIndex]?.whatsNewFact;
 
   return (
     <section className="whats-new-page">
@@ -94,6 +102,7 @@ function WhatsNew() {
         {status === 'ready' && images.length > 0 && (
           <div className="row">
             <div className="col-12">
+              {activeFact && <p className="whats-new-fact">{activeFact}</p>}
               <div className="gallery-frame">
                 {hasLoop && (
                   <button
@@ -121,6 +130,7 @@ function WhatsNew() {
                   onSwiper={(swiper) => {
                     swiperRef.current = swiper;
                   }}
+                  onSlideChange={(swiper) => setActiveIndex(swiper.realIndex ?? swiper.activeIndex ?? 0)}
                 >
                   {images.map((image, index) => (
                     <SwiperSlide key={`${image.src}-${index}`}>

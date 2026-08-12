@@ -125,7 +125,9 @@ function Gallery({ withProductFlow = false }) {
 
     async function loadImages() {
       try {
-        const categoryImages = await fetchAllCategoryImages(activeSection.id, signal);
+        const categoryImages = await fetchAllCategoryImages(activeSection.id, signal, {
+          categorySlug: activeSection.slug,
+        });
         if (cancelled) return;
         setImages(categoryImages);
         setImagesStatus('ready');

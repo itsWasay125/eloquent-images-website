@@ -87,7 +87,7 @@ function getImageTitle(path) {
     .split('/')
     .pop()
     .replace(/\.[^.]+$/, '')
-    .replace(/[-_]+/g, ' ')
+    .replace(/_+/g, ' ')
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
@@ -113,7 +113,12 @@ function getImagesByFolder() {
 }
 
 function openGallery(slides, startIndex) {
-  Fancybox.show(slides, {
+  const lightboxSlides = slides.map(({ whatsNewFact, caption, ...slide }) => ({
+    ...slide,
+    caption: '',
+  }));
+
+  Fancybox.show(lightboxSlides, {
     startIndex,
     theme: 'dark',
     Carousel: {
@@ -145,6 +150,7 @@ const SLIDE_TRANSITION_MS = 850;
 function WhatsNewSection() {
   const [images, setImages] = useState([]);
   const [status, setStatus] = useState('loading');
+  const [activeIndex, setActiveIndex] = useState(0);
   const swiperRef = useRef(null);
 
   useEffect(() => {
@@ -160,6 +166,7 @@ function WhatsNewSection() {
         if (cancelled) return;
 
         setImages(latestImages);
+        setActiveIndex(0);
         setStatus('ready');
       } catch (error) {
         if (!cancelled && error.name !== 'AbortError') {
@@ -178,6 +185,7 @@ function WhatsNewSection() {
   }, []);
 
   const hasLoop = images.length > 1;
+  const activeFact = images[activeIndex]?.whatsNewFact;
 
   return (
     <div className="homeGallery-item homeGallery-whatsNew">
@@ -201,6 +209,7 @@ function WhatsNewSection() {
         {status === 'ready' && images.length > 0 && (
           <div className="row">
             <div className="col-12">
+              {activeFact && <p className="whats-new-fact">{activeFact}</p>}
               <div className="gallery-frame" data-aos="fade-up">
                 {hasLoop && (
                   <button
@@ -228,6 +237,7 @@ function WhatsNewSection() {
                   onSwiper={(swiper) => {
                     swiperRef.current = swiper;
                   }}
+                  onSlideChange={(swiper) => setActiveIndex(swiper.realIndex ?? swiper.activeIndex ?? 0)}
                 >
                   {images.map((image, index) => (
                     <SwiperSlide key={`${image.src}-${index}`}>

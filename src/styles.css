@@ -149,8 +149,9 @@ footer .footer-copy a { color: #ffffff; font-weight: 600; text-decoration: none;
 .homeGallery-whatsNew .gallery-swiper { width: 100%; height: 100%; background: #262626; }
 .homeGallery-whatsNew .gallery-swiper .swiper-wrapper { height: 100%; }
 .homeGallery-whatsNew .gallery-swiper .swiper-slide { display: flex; align-items: stretch; justify-content: center; height: 100%; padding: 0 30px; background: #262626; }
-.homeGallery-whatsNew .gallery-slide { display: flex; align-items: stretch; justify-content: center; width: 100%; height: 100%; min-height: 100%; margin: 0 auto; padding: 0; border: 0; background: #262626; cursor: pointer; }
+.homeGallery-whatsNew .gallery-slide { position: relative; display: flex; align-items: stretch; justify-content: center; width: 100%; height: 100%; min-height: 100%; margin: 0 auto; padding: 0; border: 0; background: #262626; cursor: pointer; }
 .homeGallery-whatsNew .gallery-slide img { display: block; width: 100%; height: 100%; min-height: 100%; object-fit: contain; object-position: center; }
+.homeGallery-whatsNew .whats-new-fact { width: min(100%, 1010px); max-width: calc(100% - 60px); margin: 0 auto 28px; color: #ffffff; font-size: 18px; font-style: italic; font-weight: 600; line-height: 1.45; text-align: center; overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
 .homeGallery-whatsNew .gallery-control { position: absolute; top: 50%; z-index: 2; width: 40px; height: 40px; color: #ffffff; font-size: 37px; line-height: 1; border: 0; background: #616161; transform: translateY(-50%); transition: background 0.3s ease; border-radius: 50%; cursor: pointer; }
 .homeGallery-whatsNew .gallery-control:hover { background: #ffffff; color: #616161; }
 .homeGallery-whatsNew .gallery-control-prev { left: 12%; }
@@ -180,7 +181,7 @@ footer .footer-copy a { color: #ffffff; font-weight: 600; text-decoration: none;
 .galleryImages-nav a:hover, .galleryImages-nav a.galleryImages-active { color: #ffffff; }
 .galleryImages-card { position: relative; display: block; width: 100%; height: 200px; padding: 0; overflow: hidden; border: 0; background: #111111; }
 .galleryImages-imageSlot { display: block; width: 100%; height: 100%; background: #111111; }
-.galleryImages-card img { display: block; width: 100%; height: 100%; object-fit: cover; transition: filter 0.45s ease; object-position: top center; }
+.galleryImages-card img { display: block; width: 100%; height: 100%; object-fit: contain; transition: filter 0.45s ease; object-position: center; }
 .galleryImages-card::after { position: absolute; inset: 0; content: ""; background: rgba(0, 0, 0, 0.62); opacity: 0; transition: opacity 0.35s ease; }
 .galleryImages-card span { position: absolute; top: 50%; left: 50%; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; padding: 0 14px; color: #ffffff; font-size: 15px; font-weight: 500; line-height: 1.25; text-align: center; opacity: 0; transform: translate(-50%, -42%); transition: opacity 0.35s ease, transform 0.35s ease; }
 .galleryImages-card svg { width: 46px; height: 46px; fill: currentColor; }
@@ -194,7 +195,7 @@ footer .footer-copy a { color: #ffffff; font-weight: 600; text-decoration: none;
 .featuredBlog .container { max-width: 1300px; }
 .featuredBlog h2 { margin: 0 0 42px; color: #ffffff; font-size: 40px; font-weight: 600; line-height: 1.25; }
 .featuredBlog-card { display: block; height: 100%; color: #ffffff; text-decoration: none; }
-.featuredBlog-cardImg { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 16 / 10; margin: 0 0 18px; object-fit: cover; background: #111111; transition: filter 0.3s ease, transform 0.3s ease; object-position: top center; }
+.featuredBlog-cardImg { display: flex; align-items: center; justify-content: center; width: 100%; aspect-ratio: 16 / 10; margin: 0 0 18px; object-fit: contain; background: #111; transition: filter .3s ease, transform .3s ease; object-position: top center; height: 270px; }
 .featuredBlog-card h3 { display: -webkit-box;  margin: 0 0 12px; overflow: hidden; color: #ffffff; font-size: 25px; font-weight: 400; line-height: 32px; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .featuredBlog-card p { display: -webkit-box; margin: 0; overflow: hidden; color: #ffffff; font-size: 15px; font-weight: 400; line-height: 22px; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
 .featuredBlog-card:hover { color: #ffffff; }
@@ -547,8 +548,9 @@ footer .footer-copy a { color: #ffffff; font-weight: 600; text-decoration: none;
 .whats-new-page .gallery-swiper { width: 100%; height: 100%; background: #262626; }
 .whats-new-page .gallery-swiper .swiper-wrapper { height: 100%; }
 .whats-new-page .gallery-swiper .swiper-slide { display: flex; align-items: stretch; justify-content: center; height: 100%; padding: 0 30px; background: #262626; }
-.whats-new-page .gallery-slide { display: flex; align-items: stretch; justify-content: center; width: 100%; height: 100%; min-height: 100%; margin: 0 auto; padding: 0; border: 0; background: #262626; }
+.whats-new-page .gallery-slide { position: relative; display: flex; align-items: stretch; justify-content: center; width: 100%; height: 100%; min-height: 100%; margin: 0 auto; padding: 0; border: 0; background: #262626; }
 .whats-new-page .gallery-slide img { display: block; width: 100%; height: 100%; min-height: 100%; object-fit: contain; object-position: center; }
+.whats-new-page .whats-new-fact { width: min(100%, 1010px); max-width: calc(100% - 60px); margin: 0 auto 28px; color: #ffffff; font-size: 23px; font-style: italic; font-weight: 700; line-height: 1.45; text-align: center; overflow-wrap: anywhere; word-break: break-word; white-space: normal; }
 .whats-new-page .gallery-slide:disabled { cursor: default; }
 .whats-new-page .gallery-image-error { display: flex; align-items: center; justify-content: center; min-height: 420px; padding: 30px; color: #b8b8b8; font-size: 18px; background: #111111; border: 1px solid #3a3a3a; }
 .whats-new-page .gallery-control { position: absolute; top: 50%; z-index: 2; width: 40px; height: 40px; color: #ffffff; font-size: 37px; line-height: 1; border: 0; background: #616161; transform: translateY(-50%); transition: background 0.3s ease; border-radius:50%; }
@@ -628,6 +630,7 @@ footer .footer-copy a { color: #ffffff; font-weight: 600; text-decoration: none;
   .galleryImages-nav { flex-direction: row; flex-wrap: wrap; gap: 8px; padding: 10px; overflow: visible; background: #151515; }
   .galleryImages-nav a { flex: 1 1 calc(50% - 8px); padding: 9px 12px; font-size: 14px; text-align: center; background: rgba(255, 255, 255, 0.05); border-radius: 8px; white-space: normal; }
   .galleryImages-card { height: 180px; }
+  .featuredBlog-cardImg { height: 180px; }
   .homeWelcome, .aboutAdrian, .contactInfo, .contactForm, .products, .featuredBlog, .blogDetail, .whats-new-page, .createOwn { padding-right: 5px; padding-left: 5px; padding-top: 50px; padding-bottom: 50px; }
   .homeGallery {padding: 0px 0px 70px;}
   .homeWelcome { padding-top: 48px; padding-bottom: 58px; }
@@ -648,10 +651,13 @@ footer .footer-copy a { color: #ffffff; font-weight: 600; text-decoration: none;
   .aboutAdrian-img { margin-left: 0; padding: 0px; margin-top: 30px;}
   .galleryImages-nav a { flex-basis: 100%; }
   .galleryImages-card { height: 210px; }
+  .featuredBlog-cardImg { height: 210px; }
   .galleryImages .row.g-3 > [class*="col-"] { padding-right: 5px; padding-left: 5px; }
   .homeGallery p { font-size: 18px; }
   .homeGallery h2, .whats-new-heading { font-size: 32px; line-height: 40px; }
   .homeGallery-whatsNew .gallery-slide img, .whats-new-page .gallery-slide img { object-fit: contain; }
+  .homeGallery-whatsNew .whats-new-fact,
+  .whats-new-page .whats-new-fact { max-width: calc(100% - 32px); margin: 0 auto 18px; padding: 0 10px; font-size: 16px; line-height: 1.4; }
   .whats-new-page .whats-new-gallery h2 { font-size: 32px; }
   .contactInfo-card, .contactInfo-social { flex-direction: column; align-items: flex-start; padding: 22px; }
   .auth { padding-right: 14px; padding-left: 14px; }
