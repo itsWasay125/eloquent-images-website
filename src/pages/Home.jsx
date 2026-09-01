@@ -144,7 +144,7 @@ function openGallery(slides, startIndex) {
 }
 
 // Latest images to pull from each category before merging into one feed.
-const SLIDE_AUTOPLAY_MS = 3500;
+const SLIDE_AUTOPLAY_MS = 16000;
 const SLIDE_TRANSITION_MS = 850;
 
 function WhatsNewSection() {
@@ -224,7 +224,12 @@ function WhatsNewSection() {
                 <Swiper
                   autoplay={
                     hasLoop
-                      ? { delay: SLIDE_AUTOPLAY_MS, disableOnInteraction: false, pauseOnMouseEnter: true }
+                      ? {
+                          delay: SLIDE_AUTOPLAY_MS,
+                          disableOnInteraction: false,
+                          pauseOnMouseEnter: false,
+                          waitForTransition: true,
+                        }
                       : false
                   }
                   className="gallery-swiper"

@@ -8,7 +8,7 @@ import '@fancyapps/ui/dist/fancybox/fancybox.css';
 import 'swiper/css';
 import 'swiper/css/navigation';
 
-const SLIDE_AUTOPLAY_MS = 3500;
+const SLIDE_AUTOPLAY_MS = 16000;
 const SLIDE_TRANSITION_MS = 850;
 
 function openFancybox(slides, startIndex) {
@@ -117,7 +117,12 @@ function WhatsNew() {
                 <Swiper
                   autoplay={
                     hasLoop
-                      ? { delay: SLIDE_AUTOPLAY_MS, disableOnInteraction: false, pauseOnMouseEnter: true }
+                      ? {
+                          delay: SLIDE_AUTOPLAY_MS,
+                          disableOnInteraction: false,
+                          pauseOnMouseEnter: false,
+                          waitForTransition: true,
+                        }
                       : false
                   }
                   className="gallery-swiper"

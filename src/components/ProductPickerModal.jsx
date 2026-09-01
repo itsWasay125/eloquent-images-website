@@ -4,9 +4,6 @@ import { fetchPrintfulProducts } from '../api/printful/catalog.js';
 import { useAuth } from '../context/AuthContext.jsx';
 import RemoteImage from './RemoteImage.jsx';
 
-// Opened from a gallery image. Holds the chosen design, lets the user search
-// the Printful catalog, and on pick sends them to the product detail page with
-// that design pre-selected (via the ?design= query param).
 function ProductPickerModal({ image, onClose }) {
   const navigate = useNavigate();
   const location = useLocation();

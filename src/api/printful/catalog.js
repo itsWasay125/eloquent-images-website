@@ -1,22 +1,11 @@
-// =============================================================================
+
 // PRINTFUL FOLDER 1 — "printful-catalog"
-// -----------------------------------------------------------------------------
-// Product layer backed by Printful's CATALOG.
-// The catalog is Printful's master list of blank products you can print on
-// (t-shirts, mugs, rugs, luggage tags …). It is READ-ONLY — everything here is
-// a GET. Nothing is created/updated from this folder.
-//
 // Endpoints handled here (all GET, base = {{baseurl}}):
 //   1. GET /api/printful-get-products          -> every catalog product (grid)
 //   2. GET /api/printful-products/:id           -> one product + its variants
 //   3. GET /api/printful-products/:id/sizes     -> size guide / measurements
 //   4. GET /api/printful-categories             -> category tree
 //   5. GET /api/printful-categories/:id         -> one category
-//
-// Where the data goes:
-//   - Products grid  (Products.jsx)      <- #1 (+ #4 for category names)
-//   - Product detail (ProductDetail.jsx) <- #2 (+ #3 for the size guide)
-// =============================================================================
 
 import { getToken } from '../authToken.js';
 
