@@ -28,6 +28,30 @@ body {
 .loader-inline { min-height: 180px; }
 @keyframes loaderSpin { to { transform: rotate(360deg); } }
 
+.fancybox__slide {
+  padding: 0 !important;
+}
+
+.fancybox__content {
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+.f-carousel__toolbar__column.is-middle {
+  display: none !important;
+}
+
+.f-carousel__toolbar__column.is-right {
+  position: fixed !important;
+  top: 16px !important;
+  right: 8px !important;
+  z-index: 70 !important;
+}
+
+.fancybox__caption {
+  padding-top: 12px;
+}
+
 /* Create Your Own page */
 .createOwn { padding: 0 0 90px; color: #ffffff; background: #262626; }
 .createOwn .container { max-width: 1500px; }
@@ -566,6 +590,9 @@ footer .footer-copy a { color: #ffffff; font-weight: 600; text-decoration: none;
 .whats-new-heading { margin: 0 0 34px; color: #ffffff; font-size: 46px; font-weight: 500; text-align: center; text-shadow: 0 0 18px rgba(255, 255, 255, 0.18); }
 .galleryImages .gallery-empty { display: flex; align-items: center; justify-content: center; min-height: 280px; padding: 30px; color: #c7c7c7; font-size: 18px; text-align: center; background: #1b1b1b; border: 1px solid rgba(255, 255, 255, 0.08); }
 /* What's New Ends */
+
+.fancybox__slide .f-panzoom__content{padding-top:30px !important;}
+
 
 @keyframes whatsNewTitleReveal {
   from { opacity: 0; transform: translateY(18px); filter: blur(6px); }

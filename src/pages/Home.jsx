@@ -113,9 +113,8 @@ function getImagesByFolder() {
 }
 
 function openGallery(slides, startIndex) {
-  const lightboxSlides = slides.map(({ whatsNewFact, caption, ...slide }) => ({
+  const lightboxSlides = slides.map(({ whatsNewFact, ...slide }) => ({
     ...slide,
-    caption: '',
   }));
 
   Fancybox.show(lightboxSlides, {

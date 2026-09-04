@@ -12,9 +12,8 @@ const SLIDE_AUTOPLAY_MS = 16000;
 const SLIDE_TRANSITION_MS = 850;
 
 function openFancybox(slides, startIndex) {
-  const lightboxSlides = slides.map(({ whatsNewFact, caption, ...slide }) => ({
+  const lightboxSlides = slides.map(({ whatsNewFact, ...slide }) => ({
     ...slide,
-    caption: '',
   }));
 
   Fancybox.show(lightboxSlides, {
