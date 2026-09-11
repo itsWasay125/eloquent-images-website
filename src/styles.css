@@ -155,7 +155,7 @@ footer .footer-copy a { color: #ffffff; font-weight: 600; text-decoration: none;
 .homeGallery-feature { display: flex; align-items: center; justify-content: center; width: 100%; height: var(--large-image-height); margin: 0 0 22px; overflow: hidden; background: #262626; }
 .homeGallery-feature img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: center; }
 .homeGallery p { margin: 0 0 6px; color: #ffffff; font-size: 22px; font-weight: 400; font-style: italic; line-height: 1.6; }
-.homeGallery h2 { margin: 0 0 34px; color: #ffffff; font-size: 50px; font-weight: 600; line-height: 1.25; }
+.homeGallery h2 { margin: 0 0 25px; color: #ffffff; font-size: 50px; font-weight: 600; line-height: 1.25; text-transform: uppercase; }
 .homeGallery-card { position: relative; display: block; width: 100%; height: 238px; padding: 0; overflow: hidden; border: 0; background: transparent;}
 .homeGallery-card img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top center; transition: filter 0.45s ease; }
 .homeGallery-card::after { position: absolute; inset: 0; content: ""; background: rgba(0, 0, 0, 0.62); opacity: 0; transition: opacity 0.35s ease; }
@@ -169,6 +169,8 @@ footer .footer-copy a { color: #ffffff; font-weight: 600; text-decoration: none;
 /* Home Gallery Ends */
 
 /* What's New on Home Page */
+.homeGallery-item h2 {margin:0px 0px 10px 0px;}
+.homeGallery-item p {margin:0px 0px 30px 0px;}
 .homeGallery-whatsNew .gallery-frame { position: relative; height: var(--large-image-height); overflow: hidden; background: #262626; }
 .homeGallery-whatsNew .gallery-swiper { width: 100%; height: 100%; background: #262626; }
 .homeGallery-whatsNew .gallery-swiper .swiper-wrapper { height: 100%; }
@@ -587,7 +589,7 @@ footer .footer-copy a { color: #ffffff; font-weight: 600; text-decoration: none;
 .whats-new-page .whats-new-status-error { color: #ffffff; }
 
 /* What's New — single unified slider (newest first) */
-.whats-new-heading { margin: 0 0 34px; color: #ffffff; font-size: 46px; font-weight: 500; text-align: center; text-shadow: 0 0 18px rgba(255, 255, 255, 0.18); }
+.whats-new-heading { margin: 0 0 34px; color: #ffffff; font-size: 46px; font-weight: 500; text-align: center; text-transform: uppercase; text-shadow: 0 0 18px rgba(255, 255, 255, 0.18); }
 .galleryImages .gallery-empty { display: flex; align-items: center; justify-content: center; min-height: 280px; padding: 30px; color: #c7c7c7; font-size: 18px; text-align: center; background: #1b1b1b; border: 1px solid rgba(255, 255, 255, 0.08); }
 /* What's New Ends */
 

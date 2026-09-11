@@ -4,8 +4,9 @@ import { Link } from 'react-router-dom';
 import AOS from 'aos';
 import { Autoplay, Navigation } from 'swiper/modules';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { fetchLatestImages } from '../api/gallery.js';
+import { fetchHomeCategorySections, fetchLatestImages } from '../api/gallery.js';
 import Loader from '../components/Loader.jsx';
+import { sortGalleryCategories } from '../data/galleryCategoryOrder.js';
 import birdsImage from '../assets/birds.jpg';
 import floraImage from '../assets/flora.jpg';
 import insectsImage from '../assets/insects.jpg';
@@ -110,6 +111,15 @@ function getImagesByFolder() {
 
       return groups;
     }, {});
+}
+
+function findFallbackHomeSection(section) {
+  const sectionKey = String(section.slug || section.folder || '').toLowerCase();
+  return gallerySections.find(
+    (fallback) =>
+      fallback.folder === sectionKey ||
+      fallback.title.toLowerCase() === String(section.title || '').toLowerCase(),
+  );
 }
 
 function openGallery(slides, startIndex) {
@@ -355,17 +365,49 @@ function Home() {
 }
 
 function HomeGallery() {
-  const imagesByFolder = getImagesByFolder();
+  const [dynamicSections, setDynamicSections] = useState([]);
+  const [dynamicStatus, setDynamicStatus] = useState('loading');
+  const sections = dynamicStatus === 'ready'
+    ? sortGalleryCategories(dynamicSections).map((section) => {
+        const fallback = findFallbackHomeSection(section);
+        return {
+          ...section,
+          description: section.description || fallback?.quote || '',
+          featuredImage: section.featuredImage || fallback?.featuredImage,
+        };
+      })
+    : [];
+
+  useEffect(() => {
+    let cancelled = false;
+    const controller = new AbortController();
+
+    fetchHomeCategorySections(controller.signal)
+      .then((sections) => {
+        if (cancelled) return;
+        setDynamicSections(sections);
+        setDynamicStatus('ready');
+      })
+      .catch(() => {
+        if (!cancelled) setDynamicStatus('ready');
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, []);
 
   return (
     <section className="homeGallery">
-      {gallerySections.map((section) => {
-        const images = imagesByFolder[section.folder] ?? [];
+      {sections.map((section) => {
+        const images = section.images ?? [];
         const previewImages = images.slice(0, 8);
         const featuredImage = section.featuredImage ?? images[0]?.src;
+        const sectionSlug = section.slug || section.folder;
 
         return (
-          <div className="homeGallery-item" key={section.folder}>
+          <div className="homeGallery-item" key={section.id || sectionSlug || section.title}>
             {featuredImage && (
               <div className="homeGallery-feature">
                 <img src={featuredImage} alt={section.title} />
@@ -375,8 +417,8 @@ function HomeGallery() {
             <div className="container">
               <div className="row">
                 <div className="col-12" data-aos="fade-up">
-                  <p>{section.quote}</p>
                   <h2>{section.title}</h2>
+                  {section.description && <p>{section.description}</p>}
                 </div>
               </div>
 
@@ -411,7 +453,7 @@ function HomeGallery() {
 
               <div className="row">
                 <div className="col-12" data-aos="fade-up">
-                  <Link to={`/gallery/#${section.folder}`}>VIEW ALL</Link>
+                  <Link to={`/gallery/#${sectionSlug}`}>VIEW ALL</Link>
                 </div>
               </div>
             </div>

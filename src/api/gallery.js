@@ -1,3 +1,5 @@
+import { getToken } from './authToken.js';
+
 const API_BASE = 'https://api.eloquent-image.com';
 
 let categoriesCache = null;
@@ -44,13 +46,24 @@ function cleanCaption(name = '') {
 }
 
 async function fetchJson(url, signal) {
-  const response = await fetch(url, { cache: 'no-store', signal });
+  const token = getToken();
+  const response = await fetch(url, {
+    cache: 'no-store',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+    signal,
+  });
 
   if (!response.ok) {
     throw new Error(`Request failed with status ${response.status}`);
   }
 
   return response.json();
+}
+
+function getImageUrl(value = '') {
+  const url = String(value || '').trim();
+  const markdownMatch = url.match(/\((https?:\/\/[^)]+)\)/);
+  return markdownMatch ? markdownMatch[1] : url;
 }
 
 function mapApiImages(images = []) {
@@ -66,6 +79,73 @@ function mapApiImages(images = []) {
       // Kept so callers can sort a merged, cross-category feed newest-first.
       createdAt: image.createdAt || image.created_at || null,
     }));
+}
+
+function mapHomeCategorySection(section = {}) {
+  const category = section.category || {};
+  const imageItems = Array.isArray(section.images) ? section.images : [];
+  const images = imageItems
+    .map((item) => item.image || item)
+    .filter((image) => getImageUrl(image?.imageUrl))
+    .map((image) => ({
+      id: image.id,
+      src: getImageUrl(image.imageUrl),
+      caption: cleanCaption(getImageName(image)),
+      whatsNewFact: cleanCaption(getWhatsNewFact(image)),
+      type: 'image',
+      createdAt: image.createdAt || image.created_at || null,
+    }))
+    .slice(0, 8);
+  const coverImage = section.image || section.coverImage || section.cover_image || images[0];
+  const coverSrc = getImageUrl(coverImage?.imageUrl || coverImage?.src || '');
+
+  return {
+    id: section.id,
+    categoryId: section.category_id || section.categoryId || category.id,
+    title: category.name || section.name || section.title || 'Gallery',
+    slug: category.slug || section.slug || '',
+    description: section.description || '',
+    featuredImage: coverSrc || images[0]?.src || '',
+    images,
+  };
+}
+
+function getCategoryRankMap(categories = []) {
+  return new Map(categories.map((category, index) => [String(category.id), index]));
+}
+
+function getImageCategoryRank(image = {}, categoryRankMap = new Map()) {
+  const ranks = (image.categories || [])
+    .map((category) => categoryRankMap.get(String(category.id ?? category.categoryId)))
+    .filter((rank) => Number.isInteger(rank));
+
+  return ranks.length ? Math.min(...ranks) : Number.MAX_SAFE_INTEGER;
+}
+
+function getImageFirstSortOrder(image = {}) {
+  const sortOrders = (image.categories || [])
+    .map((category) => Number(category.sortOrder))
+    .filter((sortOrder) => Number.isFinite(sortOrder) && sortOrder > 0);
+
+  return sortOrders.length ? Math.min(...sortOrders) : Number.MAX_SAFE_INTEGER;
+}
+
+function sortWhatsNewImages(images = [], categories = []) {
+  const categoryRankMap = getCategoryRankMap(categories);
+
+  return [...images].sort((first, second) => {
+    const categoryRankDiff =
+      getImageCategoryRank(first, categoryRankMap) - getImageCategoryRank(second, categoryRankMap);
+    if (categoryRankDiff !== 0) return categoryRankDiff;
+
+    const sortOrderDiff = getImageFirstSortOrder(first) - getImageFirstSortOrder(second);
+    if (sortOrderDiff !== 0) return sortOrderDiff;
+
+    return getImageName(first).localeCompare(getImageName(second), undefined, {
+      numeric: true,
+      sensitivity: 'base',
+    });
+  });
 }
 
 function getImageSortOrder(image, categoryId) {
@@ -156,6 +236,52 @@ export async function fetchGalleryCategories() {
   return categoriesRequest;
 }
 
+export async function fetchHomeCategorySections(signal) {
+  const categories = await fetchGalleryCategories();
+  const categoryById = new Map(categories.map((category) => [String(category.id), category]));
+  const homeCategoryData = await fetchJson(`${API_BASE}/api/whatsnew-get-all-categories`, signal).catch(() => ({}));
+  const homeCategoryList = Array.isArray(homeCategoryData.data)
+    ? homeCategoryData.data
+    : Array.isArray(homeCategoryData.categories)
+      ? homeCategoryData.categories
+      : Array.isArray(homeCategoryData)
+        ? homeCategoryData
+        : [];
+  const details = await Promise.all(
+    homeCategoryList.map(async (section) => {
+      const normalizedSection = mapHomeCategorySection(section);
+      if (!categoryById.has(String(normalizedSection.categoryId))) return null;
+
+      const detail = normalizedSection.id
+        ? await fetchJson(`${API_BASE}/api/whatsnew-get-category/${normalizedSection.id}`, signal)
+            .then((response) => response.data || response)
+            .catch(() => section)
+        : section;
+      const category = categoryById.get(String(detail.category_id || detail.categoryId || detail.category?.id));
+      const homeSection = mapHomeCategorySection({
+        ...detail,
+        category: detail.category || category,
+      });
+
+      return {
+        ...homeSection,
+        categoryId: category?.id || homeSection.categoryId,
+        title: category?.name || homeSection.title,
+        slug: category?.slug || homeSection.slug,
+        featuredImage: homeSection.featuredImage || homeSection.images[0]?.src || '',
+      };
+    }),
+  );
+
+  return details
+    .filter((section) => section?.title && section.images.length > 0 && section.images.length <= 8)
+    .sort(
+      (first, second) =>
+        (categoryById.has(String(first.categoryId)) ? categories.findIndex((category) => String(category.id) === String(first.categoryId)) : 999) -
+        (categoryById.has(String(second.categoryId)) ? categories.findIndex((category) => String(category.id) === String(second.categoryId)) : 999),
+    );
+}
+
 export async function searchImages(query, signal) {
   const params = new URLSearchParams({ limit: '100', search: query });
 
@@ -183,7 +309,10 @@ export async function fetchGalleryImages(signal) {
 // Fetch the latest N images across all categories that are marked as "What's New"
 export async function fetchLatestImages(limit = 15, signal) {
   const params = new URLSearchParams({ limit: '100', is_new: 'true' });
-  const data = await fetchJson(`${API_BASE}/api/images?${params.toString()}`, signal);
+  const [data, categories] = await Promise.all([
+    fetchJson(`${API_BASE}/api/images?${params.toString()}`, signal),
+    fetchGalleryCategories(),
+  ]);
 
   if (!data.success || !Array.isArray(data.data)) {
     throw new Error('The images response is invalid');
@@ -197,9 +326,7 @@ export async function fetchLatestImages(limit = 15, signal) {
     newImages = newImages.filter(isMarkedNew);
   }
 
-  newImages = [...newImages].sort(
-    (a, b) => new Date(getWhatsNewSortDate(b) || 0) - new Date(getWhatsNewSortDate(a) || 0),
-  );
+  newImages = sortWhatsNewImages(newImages, categories);
 
   return mapApiImages(newImages.slice(0, limit));
 }
